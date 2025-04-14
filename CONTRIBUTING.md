@@ -1,6 +1,6 @@
 # Contributing to Chiaroscuro Forge
 
-First off, thank you for considering contributing to ChiaroscuroForge! It's people like you that make ChiaroscuroForge such a great tool.
+First off, thank you for considering contributing to Chiaroscuro Forge! It's people like you that make Chiaroscuro Forge such a great tool.
 
 ## Development Process
 
@@ -51,7 +51,7 @@ We love to hear your ideas for new features! Please use the GitHub issue tracker
 
 ## Community
 
-Discussions about ChiaroscuroForge take place on this repository's Issues and Pull Requests sections. Anybody is welcome to join these conversations.
+Discussions about Chiaroscuro Forge take place on this repository's Issues and Pull Requests sections. Anybody is welcome to join these conversations.
 
 ## License
 
