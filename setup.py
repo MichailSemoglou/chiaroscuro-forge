@@ -11,7 +11,7 @@ setup(
     description="An intelligent image enhancement tool inspired by Renaissance techniques",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/chiaroscuro-forge",
+    url="https://github.com/MichailSemoglou/chiaroscuro-forge",
     packages=find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
