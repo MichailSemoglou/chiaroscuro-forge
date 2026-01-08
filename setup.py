@@ -1,12 +1,24 @@
 from setuptools import setup
 
+import pathlib
+import re
+
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
+
+
+def _read_version() -> str:
+    module_path = pathlib.Path(__file__).parent / "chiaroscuro_forge.py"
+    content = module_path.read_text(encoding="utf-8")
+    match = re.search(r"^__version__\s*=\s*\"([^\"]+)\"\s*$", content, re.M)
+    if not match:
+        raise RuntimeError("Unable to find __version__ in chiaroscuro_forge.py")
+    return match.group(1)
 
 setup(
     # Distribution name on PyPI (can differ from import name).
     name="chiaroscuro-forge",
-    version="0.1.0",
+    version=_read_version(),
     author="Michail Semoglou",
     author_email="m.semoglou@tongji.edu.cn",
     description="An intelligent image enhancement tool inspired by Renaissance techniques",
