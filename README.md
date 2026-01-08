@@ -145,20 +145,6 @@ The project is structured around core image processing functions with a focus on
 - `compare_processing_methods()`: Compares different enhancement approaches
 - `batch_process_images()`: Handles processing of multiple images
 
-## Citing
-
-- A citation file is provided in [CITATION.cff](CITATION.cff) (GitHub will surface this under “Cite this repository”).
-- Zenodo metadata is provided in [.zenodo.json](.zenodo.json).
-
-To mint a DOI via Zenodo:
-
-1. Connect Zenodo to your GitHub account.
-2. In Zenodo, enable archiving for this repository.
-3. Create a GitHub Release (tag) for a version (e.g. `v0.1.0`).
-4. Zenodo will archive that release and assign a DOI (plus a concept DOI).
-
-Once the DOI exists, add it here (badge and/or plain DOI string).
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
