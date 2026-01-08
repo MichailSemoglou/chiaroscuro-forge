@@ -21,12 +21,24 @@ An intelligent image enhancement tool inspired by Renaissance techniques. Featur
 - SciPy
 - scikit-image
 
+### Install from PyPI
+
+```bash
+pip install chiaroscuro-forge
+```
+
+After installing, the CLI entrypoint is available as:
+
+```bash
+chiaroscuro-forge --help
+```
+
 ### Install from source
 
 ```bash
 git clone https://github.com/MichailSemoglou/chiaroscuro-forge.git
 cd chiaroscuro-forge
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ## Quick Start
@@ -34,54 +46,59 @@ pip install -r requirements.txt
 ### Process a single image
 
 ```bash
-python chiaroscuro_forge.py input.jpg --output enhanced.jpg
+chiaroscuro-forge input.jpg --output enhanced.jpg
 ```
 
 ### Analyze an image and suggest parameters
 
 ```bash
-python chiaroscuro_forge.py input.jpg --analyze
+chiaroscuro-forge input.jpg --analyze
 ```
 
 ### Process multiple images in batch mode
 
 ```bash
-python chiaroscuro_forge.py "images/*.jpg" --output processed/ --batch
+chiaroscuro-forge "images/*.jpg" --output processed/ --batch
 ```
 
 ### Create and use presets
 
 ```bash
 # Save parameters as preset
-python chiaroscuro_forge.py input.jpg --analyze --save-preset my_preset
+chiaroscuro-forge input.jpg --analyze --save-preset my_preset
 
 # Use preset to process images
-python chiaroscuro_forge.py input.jpg --output enhanced.jpg --preset my_preset
+chiaroscuro-forge input.jpg --output enhanced.jpg --preset my_preset
 ```
 
 ## Command-Line Options
 
 ### Input/Output
+
 - `image_path`: Path to input image or glob pattern for batch processing
 - `--output, -o`: Path for output image or directory for batch processing
 - `--batch, -b`: Enable batch processing mode
 
 ### Processing Parameters
+
 - `--application, -a`: Application type (general, photography, medical, document, art)
 - `--preset`: Name of a preset to use
 
 ### Analysis Options
+
 - `--analyze`: Analyze image and suggest parameters
 - `--analyze-batch`: Analyze multiple images and suggest optimal parameters
 - `--compare`: Compare different processing methods
 - `--compare-dir`: Output directory for comparison results
 
 ### Preset Management
+
 - `--save-preset`: Save parameters as a preset
 - `--list-presets`: List all available presets
 - `--preset-description`: Description for the preset
 
 ### Batch Processing Options
+
 - `--workers, -w`: Number of parallel workers (default: 4)
 - `--skip-existing`: Skip files that have already been processed
 - `--report`: Generate a JSON report with processing results
@@ -92,31 +109,31 @@ python chiaroscuro_forge.py input.jpg --output enhanced.jpg --preset my_preset
 ### Basic Enhancement
 
 ```bash
-python chiaroscuro_forge.py photo.jpg --output enhanced.jpg
+chiaroscuro-forge photo.jpg --output enhanced.jpg
 ```
 
 ### Custom Application Type
 
 ```bash
-python chiaroscuro_forge.py document.jpg --output enhanced.jpg --application document
+chiaroscuro-forge document.jpg --output enhanced.jpg --application document
 ```
 
 ### Analyze and Process
 
 ```bash
-python chiaroscuro_forge.py photo.jpg --analyze --output enhanced.jpg
+chiaroscuro-forge photo.jpg --analyze --output enhanced.jpg
 ```
 
 ### Compare Processing Methods
 
 ```bash
-python chiaroscuro_forge.py photo.jpg --compare
+chiaroscuro-forge photo.jpg --compare
 ```
 
 ### Batch Processing with Report
 
 ```bash
-python chiaroscuro_forge.py "photos/*.jpg" --output enhanced/ --batch --workers 8 --report
+chiaroscuro-forge "photos/*.jpg" --output enhanced/ --batch --workers 8 --report
 ```
 
 ## Development
@@ -127,6 +144,20 @@ The project is structured around core image processing functions with a focus on
 - `process_image()`: Main processing function with numerous customizable parameters
 - `compare_processing_methods()`: Compares different enhancement approaches
 - `batch_process_images()`: Handles processing of multiple images
+
+## Citing
+
+- A citation file is provided in [CITATION.cff](CITATION.cff) (GitHub will surface this under “Cite this repository”).
+- Zenodo metadata is provided in [.zenodo.json](.zenodo.json).
+
+To mint a DOI via Zenodo:
+
+1. Connect Zenodo to your GitHub account.
+2. In Zenodo, enable archiving for this repository.
+3. Create a GitHub Release (tag) for a version (e.g. `v0.1.0`).
+4. Zenodo will archive that release and assign a DOI (plus a concept DOI).
+
+Once the DOI exists, add it here (badge and/or plain DOI string).
 
 ## Contributing
 

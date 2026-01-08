@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use Chiaroscuro Forge in your research, please cite it."
+title: "Chiaroscuro Forge"
+type: software
+authors:
+  - family-names: "Semoglou"
+    given-names: "Michail"
+    email: "m.semoglou@tongji.edu.cn"
+    orcid: "https://orcid.org/0009-0003-3268-5657"
+repository-code: "https://github.com/MichailSemoglou/chiaroscuro-forge"
+url: "https://github.com/MichailSemoglou/chiaroscuro-forge"
+license: MIT
+keywords:
+  - image processing
+  - image enhancement
+  - contrast enhancement
+  - photography
+  - scikit-image
+  - numpy
+abstract: >-
+  An intelligent image enhancement tool inspired by Renaissance techniques,
+  including automatic parameter detection, color preservation, quality metrics,
+  and parallel batch processing.
