@@ -136,10 +136,50 @@ chiaroscuro-forge photo.jpg --compare
 chiaroscuro-forge "photos/*.jpg" --output enhanced/ --batch --workers 8 --report
 ```
 
+## Python API
+
+You can use Chiaroscuro Forge directly in your Python code:
+
+### Get Image Statistics
+
+```python
+from chiaroscuro_forge import get_image_statistics
+
+stats = get_image_statistics("photo.jpg")
+print(f"Dimensions: {stats['dimensions']}")
+print(f"Brightness: {stats['brightness']:.2f}")
+print(f"Dynamic range: {stats['dynamic_range']:.2f}")
+print(f"Contrast ratio: {stats['contrast_ratio']:.2f}")
+```
+
+### Process an Image
+
+```python
+from chiaroscuro_forge import process_image
+
+processed, metrics = process_image(
+    "input.jpg",
+    output_path="enhanced.jpg",
+    application_type="photography"
+)
+print(f"SSIM: {metrics['ssim']:.4f}")
+print(f"PSNR: {metrics['psnr']:.2f} dB")
+```
+
+### Analyze Image Characteristics
+
+```python
+from chiaroscuro_forge import analyze_image_characteristics
+
+analysis = analyze_image_characteristics("photo.jpg")
+print(f"Suggested parameters: {analysis['suggested_params']}")
+```
+
 ## Development
 
 The project is structured around core image processing functions with a focus on quality and customizability:
 
+- `get_image_statistics()`: Returns comprehensive image statistics (dimensions, intensity, histogram, dynamic range, contrast)
 - `analyze_image_characteristics()`: Extracts characteristics from images
 - `process_image()`: Main processing function with numerous customizable parameters
 - `compare_processing_methods()`: Compares different enhancement approaches
