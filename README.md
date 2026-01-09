@@ -1,5 +1,11 @@
 # Chiaroscuro Forge
 
+[![PyPI version](https://img.shields.io/pypi/v/chiaroscuro-forge.svg)](https://pypi.org/project/chiaroscuro-forge/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/chiaroscuro-forge.svg)](https://pypi.org/project/chiaroscuro-forge/)
+[![Python versions](https://img.shields.io/pypi/pyversions/chiaroscuro-forge.svg)](https://pypi.org/project/chiaroscuro-forge/)
+[![License](https://img.shields.io/pypi/l/chiaroscuro-forge.svg)](https://github.com/MichailSemoglou/chiaroscuro-forge/blob/main/LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18200572.svg)](https://doi.org/10.5281/zenodo.18200572)
+
 An intelligent image enhancement tool inspired by Renaissance techniques. Features automatic parameter detection, advanced color preservation, quality metrics, and parallel batch processing. Perfect for photographers and developers seeking to transform ordinary images with artistic precision.
 
 ## Features
