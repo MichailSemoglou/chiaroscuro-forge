@@ -21,7 +21,7 @@ import skimage.feature as feature
 from skimage import color, img_as_float, img_as_ubyte
 
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 
 class ImageProcessingError(Exception):
@@ -2082,6 +2082,117 @@ def batch_process_images(
             logger.error(f"Failed to save report: {e}")
 
     return results
+
+
+def get_image_statistics(image: Union[str, np.ndarray]) -> Dict[str, Any]:
+    """
+    Calculate comprehensive statistics for an image.
+
+    This function provides a quick overview of image properties including
+    intensity statistics, histogram information, and basic quality indicators.
+
+    Parameters
+    ----------
+    image : str or np.ndarray
+        Either a file path to an image or a numpy array containing image data.
+
+    Returns
+    -------
+    dict
+        A dictionary containing:
+        - dimensions: tuple of (height, width, channels)
+        - dtype: data type of the image array
+        - intensity: dict with min, max, mean, std, median values
+        - histogram: dict with percentiles (1, 5, 25, 50, 75, 95, 99)
+        - dynamic_range: effective dynamic range of the image
+        - is_color: boolean indicating if image is color or grayscale
+        - contrast_ratio: ratio between brightest and darkest regions
+        - brightness: overall brightness (0-1 scale)
+
+    Raises
+    ------
+    ImageProcessingError
+        If the image cannot be loaded or is invalid.
+
+    Examples
+    --------
+    >>> stats = get_image_statistics("photo.jpg")
+    >>> print(f"Image brightness: {stats['brightness']:.2f}")
+    >>> print(f"Dynamic range: {stats['dynamic_range']:.2f}")
+    """
+    # Load image if path is provided
+    if isinstance(image, str):
+        _validate_image_path(image)
+        try:
+            img = io.imread(image)
+        except Exception as e:
+            raise ImageProcessingError(f"Failed to load image: {e}")
+    else:
+        img = image
+
+    validate_array(img, "image")
+
+    # Convert to float for consistent calculations
+    img_float = img_as_float(img)
+
+    # Determine if color or grayscale
+    is_color = img_float.ndim == 3 and img_float.shape[2] >= 3
+
+    # Calculate dimensions
+    if is_color:
+        height, width, channels = img_float.shape
+    else:
+        height, width = img_float.shape
+        channels = 1
+
+    # Flatten for statistics (use luminance for color images)
+    if is_color:
+        luminance = 0.2126 * img_float[:, :, 0] + 0.7152 * img_float[:, :, 1] + 0.0722 * img_float[:, :, 2]
+        flat = luminance.flatten()
+    else:
+        flat = img_float.flatten()
+
+    # Calculate intensity statistics
+    intensity_stats = {
+        "min": float(np.min(flat)),
+        "max": float(np.max(flat)),
+        "mean": float(np.mean(flat)),
+        "std": float(np.std(flat)),
+        "median": float(np.median(flat)),
+    }
+
+    # Calculate percentiles for histogram analysis
+    percentiles = {
+        "p1": float(np.percentile(flat, 1)),
+        "p5": float(np.percentile(flat, 5)),
+        "p25": float(np.percentile(flat, 25)),
+        "p50": float(np.percentile(flat, 50)),
+        "p75": float(np.percentile(flat, 75)),
+        "p95": float(np.percentile(flat, 95)),
+        "p99": float(np.percentile(flat, 99)),
+    }
+
+    # Calculate dynamic range (using 1st and 99th percentile to avoid outliers)
+    dynamic_range = percentiles["p99"] - percentiles["p1"]
+
+    # Calculate contrast ratio
+    dark_region = percentiles["p5"]
+    bright_region = percentiles["p95"]
+    contrast_ratio = bright_region / max(dark_region, 0.001)
+
+    # Overall brightness (mean normalized to 0-1)
+    brightness = intensity_stats["mean"]
+
+    return {
+        "dimensions": (height, width, channels),
+        "dtype": str(img.dtype),
+        "intensity": intensity_stats,
+        "histogram": percentiles,
+        "dynamic_range": float(dynamic_range),
+        "is_color": is_color,
+        "contrast_ratio": float(contrast_ratio),
+        "brightness": float(brightness),
+    }
 
 
 if __name__ == "__main__":
