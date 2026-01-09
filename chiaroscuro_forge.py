@@ -21,7 +21,7 @@ import skimage.feature as feature
 from skimage import color, img_as_float, img_as_ubyte
 
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 
 class ImageProcessingError(Exception):
