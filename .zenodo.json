@@ -1,7 +1,7 @@
 {
   "title": "Chiaroscuro Forge",
   "version": "0.2.0",
-  "description": "An intelligent image enhancement tool inspired by Renaissance techniques, including automatic parameter detection, color preservation, quality metrics, and parallel batch processing.,
+  "description": "An intelligent image enhancement tool inspired by Renaissance techniques, including automatic parameter detection, color preservation, quality metrics, and parallel batch processing.",
   "upload_type": "software",
   "access_right": "open",
   "license": "MIT",
