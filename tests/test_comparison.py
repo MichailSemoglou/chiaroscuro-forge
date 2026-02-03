@@ -108,8 +108,13 @@ class TestCompareProcessingMethods(unittest.TestCase):
     
     def test_compare_methods_output_dir_creation_fails(self):
         """Test error when output directory creation fails."""
-        # Use invalid path that cannot be created
-        invalid_path = "/root/cannot_create_this_dir_without_permission"
+        # Use invalid path that cannot be created - works on both Unix and Windows
+        if os.name == 'nt':  # Windows
+            # Use a path with invalid characters or a reserved path
+            invalid_path = "CON:\\invalid_dir"  # CON is a reserved device name on Windows
+        else:
+            # On Unix, use a path without permission
+            invalid_path = "/root/cannot_create_this_dir_without_permission"
         
         with self.assertRaises(ImageProcessingError) as ctx:
             compare_processing_methods(

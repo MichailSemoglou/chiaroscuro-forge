@@ -37,6 +37,10 @@ def setup_logger(log_file=None, log_level=logging.INFO):
 
     # File handler if log_file is provided
     if log_file:
+        # Ensure parent directory exists (needed for Windows)
+        log_dir = os.path.dirname(log_file)
+        if log_dir and not os.path.exists(log_dir):
+            os.makedirs(log_dir)
         file_handler = logging.FileHandler(log_file)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
