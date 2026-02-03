@@ -220,6 +220,15 @@ class TestModuleStructure(unittest.TestCase):
             'TaskStatus',
             'TaskResult',
             'create_queue',
+            # Phase 4.3: REST API (added in v0.4.0)
+            'app',
+            'api_key_manager',
+            'job_manager',
+            'run_server',
+            'APIJobStatus',
+            'JobInfo',
+            'APIResponse',
+            'ProcessingParams',
         }
         
         self.assertEqual(set(chiaroscuro_forge.__all__), expected_exports,

@@ -139,6 +139,16 @@ if not _import_successful:
             TaskResult,
             create_queue,
         )
+        from chiaroscuro_forge.api import (
+            app,
+            api_key_manager,
+            job_manager,
+            run_server,
+            JobStatus as APIJobStatus,
+            JobInfo,
+            APIResponse,
+            ProcessingParams,
+        )
         
         _import_successful = True
         
@@ -209,4 +219,13 @@ __all__ = [
     "TaskStatus",
     "TaskResult",
     "create_queue",
+    # Phase 4.3: REST API
+    "app",
+    "api_key_manager",
+    "job_manager",
+    "run_server",
+    "APIJobStatus",
+    "JobInfo",
+    "APIResponse",
+    "ProcessingParams",
 ]

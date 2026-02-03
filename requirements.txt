@@ -7,3 +7,7 @@ scikit-image>=0.18.0
 # - For NVIDIA GPUs: pip install cupy-cuda11x (or cupy-cuda12x)
 # - For Apple Silicon: Metal is built-in, no extra dependencies
 # - For OpenCL: pip install pyopencl
+
+# Optional REST API dependencies (Phase 4.3)
+# Install for API functionality:
+# pip install "fastapi[all]" uvicorn
