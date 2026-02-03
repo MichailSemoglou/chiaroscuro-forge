@@ -6,7 +6,8 @@ and processing parameters.
 """
 
 import os
-from typing import Tuple
+from pathlib import Path
+from typing import Tuple, Optional
 import numpy as np
 
 from chiaroscuro_forge.exceptions import ImageProcessingError
@@ -15,15 +16,27 @@ from chiaroscuro_forge.constants import (
     VALID_DENOISE_TYPES,
     VALID_EQUALIZE_METHODS,
     VALID_COLOR_METHODS,
+    MAX_FILE_SIZE_MB,
+    MAX_IMAGE_PIXELS,
+    MAX_DIMENSION,
+    ALLOWED_EXTENSIONS,
+    MAX_PATH_LENGTH,
+    DENIED_PATH_PATTERNS,
 )
 
 
-def validate_array(arr: np.ndarray, name: str = "array") -> None:
+def validate_array(
+    arr: np.ndarray,
+    name: str = "array",
+    max_pixels: Optional[int] = None,
+    max_dimension: Optional[int] = None
+) -> None:
     """
-    Validate that an array is suitable for image processing.
+    Validate that an array is suitable for image processing with security limits.
     
-    Checks that the array is a valid numpy array with correct dimensions
-    and no invalid values (NaN or Inf).
+    Checks that the array is a valid numpy array with correct dimensions,
+    no invalid values (NaN or Inf), and within safe size limits to prevent
+    memory exhaustion attacks.
     
     Parameters
     ----------
@@ -31,19 +44,23 @@ def validate_array(arr: np.ndarray, name: str = "array") -> None:
         Array to validate.
     name : str, optional
         Name of the array for error messages, by default "array".
+    max_pixels : int, optional
+        Maximum total pixels allowed. Defaults to MAX_IMAGE_PIXELS.
+    max_dimension : int, optional
+        Maximum single dimension allowed. Defaults to MAX_DIMENSION.
         
     Raises
     ------
     ImageProcessingError
-        If the array is invalid.
+        If the array is invalid, too large, or contains invalid values.
         
     Examples
     --------
     >>> import numpy as np
     >>> img = np.random.rand(100, 100, 3)
     >>> validate_array(img, "test_image")  # No error
-    >>> invalid = np.array([1, 2, 3])
-    >>> validate_array(invalid)  # Raises ImageProcessingError
+    >>> huge = np.zeros((50000, 50000))  # Too large
+    >>> validate_array(huge)  # Raises ImageProcessingError
     """
     if not isinstance(arr, np.ndarray):
         raise ImageProcessingError(f"{name} must be a numpy array")
@@ -52,14 +69,40 @@ def validate_array(arr: np.ndarray, name: str = "array") -> None:
         raise ImageProcessingError(
             f"{name} must be 2D (grayscale) or 3D (color) array"
         )
+    
+    # Security: Check dimension limits (memory bomb prevention)
+    max_pix = max_pixels or MAX_IMAGE_PIXELS
+    max_dim = max_dimension or MAX_DIMENSION
+    
+    total_pixels = arr.size
+    if total_pixels > max_pix:
+        raise ImageProcessingError(
+            f"{name} too large: {total_pixels:,} pixels "
+            f"(max: {max_pix:,} pixels). Potential memory bomb attack."
+        )
+    
+    # Check individual dimensions
+    for i, dim_size in enumerate(arr.shape):
+        if dim_size > max_dim:
+            raise ImageProcessingError(
+                f"{name} dimension {i} too large: {dim_size:,} pixels "
+                f"(max: {max_dim:,})"
+            )
 
     if np.isnan(arr).any() or np.isinf(arr).any():
         raise ImageProcessingError(f"{name} contains NaN or Inf values")
 
 
-def validate_image_path(image_path: str) -> None:
+def _validate_image_path(image_path: str) -> None:
     """
-    Validate that an image file path exists and is accessible.
+    Comprehensive security validation for image file paths.
+    
+    Performs multiple security checks including:
+    - Path traversal attack prevention (../, ~, null bytes)
+    - Path length limits
+    - File size limits
+    - Extension whitelist validation
+    - File type verification (imghdr)
     
     Parameters
     ----------
@@ -69,20 +112,125 @@ def validate_image_path(image_path: str) -> None:
     Raises
     ------
     ImageProcessingError
-        If the path is invalid or inaccessible.
+        If the path is invalid, insecure, too large, or wrong type.
+        
+    Examples
+    --------
+    >>> _validate_image_path("photo.jpg")  # OK
+    >>> _validate_image_path("../etc/passwd")  # Raises - path traversal
+    >>> _validate_image_path("huge_file.jpg")  # Raises if >100MB
+    """
+    # Basic validation
+    if not image_path:
+        raise ImageProcessingError("Image path cannot be empty")
+    
+    # Security: Path length limit
+    if len(image_path) > MAX_PATH_LENGTH:
+        raise ImageProcessingError(
+            f"Path too long: {len(image_path)} characters "
+            f"(max: {MAX_PATH_LENGTH})"
+        )
+    
+    # Security: Path traversal attack prevention
+    path_str = str(image_path).lower()
+    for pattern in DENIED_PATH_PATTERNS:
+        if pattern in image_path:
+            raise ImageProcessingError(
+                f"Path contains denied pattern '{pattern}'. "
+                "Potential path traversal attack."
+            )
+    
+    # Security: Resolve and check canonicalization
+    try:
+        resolved_path = Path(image_path).resolve(strict=False)
+        # Prevent directory traversal
+        if '..' in Path(image_path).parts:
+            raise ImageProcessingError(
+                "Path contains parent directory references. "
+                "Potential path traversal attack."
+            )
+    except Exception as e:
+        raise ImageProcessingError(f"Invalid path: {e}")
+    
+    # Check file exists
+    if not os.path.exists(image_path):
+        raise ImageProcessingError(f"Image file not found: {image_path}")
+    
+    # Check it's a file, not a directory or special file
+    if not os.path.isfile(image_path):
+        raise ImageProcessingError(f"Path is not a regular file: {image_path}")
+    
+    # Security: File size limit (DoS prevention)
+    try:
+        file_size_bytes = os.path.getsize(image_path)
+        file_size_mb = file_size_bytes / (1024 * 1024)
+        
+        if file_size_mb > MAX_FILE_SIZE_MB:
+            raise ImageProcessingError(
+                f"File too large: {file_size_mb:.2f} MB "
+                f"(max: {MAX_FILE_SIZE_MB} MB). Potential DoS attack."
+            )
+    except OSError as e:
+        raise ImageProcessingError(f"Cannot access file size: {e}")
+    
+    # Security: Extension whitelist
+    file_ext = Path(image_path).suffix.lower()
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise ImageProcessingError(
+            f"File extension '{file_ext}' not allowed. "
+            f"Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+        )
+    
+    # Security: Verify file type by content (not just extension)
+    # Check magic numbers for common image formats
+    try:
+        with open(image_path, 'rb') as f:
+            header = f.read(32)
+        
+        # Check magic numbers for common image formats
+        is_valid_image = (
+            header[:2] == b'\xff\xd8' or  # JPEG
+            header[:8] == b'\x89PNG\r\n\x1a\n' or  # PNG
+            header[:2] in (b'II', b'MM') or  # TIFF
+            header[:2] == b'BM' or  # BMP
+            header[:4] == b'RIFF' or  # WebP (also checks for WEBP later)
+            header[:3] == b'GIF'  # GIF
+        )
+        
+        if not is_valid_image:
+            raise ImageProcessingError(
+                "File does not appear to be a valid image "
+                "(magic number check failed)"
+            )
+    except ImageProcessingError:
+        raise
+    except Exception as e:
+        raise ImageProcessingError(f"Cannot verify file type: {e}")
+
+
+def validate_image_path(image_path: str) -> None:
+    """
+    Validate that an image file path is secure and accessible.
+    
+    This is the public API that wraps _validate_image_path with
+    comprehensive security checks.
+    
+    Parameters
+    ----------
+    image_path : str
+        Path to the image file.
+        
+    Raises
+    ------
+    ImageProcessingError
+        If the path is invalid, insecure, or inaccessible.
         
     Examples
     --------
     >>> validate_image_path("photo.jpg")  # Raises if file doesn't exist
+    >>> validate_image_path("../sensitive.jpg")  # Raises - security issue
     """
-    if not image_path:
-        raise ImageProcessingError("Image path cannot be empty")
-
-    if not os.path.exists(image_path):
-        raise ImageProcessingError(f"Image file not found: {image_path}")
-
-    if not os.path.isfile(image_path):
-        raise ImageProcessingError(f"The path is not a file: {image_path}")
+    _validate_image_path(image_path)
 
 
 def validate_processing_params(

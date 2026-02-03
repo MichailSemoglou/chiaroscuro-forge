@@ -186,3 +186,34 @@ LUMINANCE_G = 0.7152
 
 LUMINANCE_B = 0.0722
 """Blue channel weight for luminance calculation"""
+
+# Security Constants
+MAX_FILE_SIZE_MB = 100
+"""Maximum allowed file size in megabytes (default: 100MB)"""
+
+MAX_IMAGE_PIXELS = 100_000_000
+"""Maximum allowed image pixels (default: 100 megapixels, ~10000x10000)"""
+
+MAX_DIMENSION = 32768
+"""Maximum allowed single dimension in pixels (default: 32768)"""
+
+ALLOWED_EXTENSIONS = {
+    '.jpg', '.jpeg', '.png', '.tif', '.tiff', '.bmp', '.gif', '.webp'
+}
+"""Set of allowed image file extensions"""
+
+ALLOWED_MIME_TYPES = {
+    'image/jpeg', 'image/png', 'image/tiff', 'image/bmp', 'image/gif', 'image/webp'
+}
+"""Set of allowed MIME types for images"""
+
+# Path Security
+MAX_PATH_LENGTH = 4096
+"""Maximum allowed path length"""
+
+DENIED_PATH_PATTERNS = [
+    '..',  # Parent directory traversal
+    '~',   # Home directory expansion
+    '\x00',  # Null byte injection
+]
+"""Patterns that indicate potential path traversal attacks"""

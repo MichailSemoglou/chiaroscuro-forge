@@ -27,7 +27,7 @@ Successfully completed the initial modular migration of chiaroscuro-forge packag
    - `validate_array()` - Image array validation
    - `validate_image_path()` - File path validation
    - `validate_processing_params()` - 17 parameter validations
-   - Backward compatibility aliases (_validate_* functions)
+   - Backward compatibility aliases (_validate_\* functions)
 
 4. **Stub Modules** - TEMPORARY IMPORTS FROM MONOLITHIC FILE
    - `analysis.py` - analyze_image_characteristics, get_image_statistics
@@ -38,7 +38,7 @@ Successfully completed the initial modular migration of chiaroscuro-forge packag
 
 ### ✅ Infrastructure
 
-- **__init__.py** - Dual import strategy (monolithic + modular)
+- ****init**.py** - Dual import strategy (monolithic + modular)
 - **exceptions.py** - ImageProcessingError class
 - **constants.py** - All validation constants
 - **complete_migration.py** - Automated migration script
@@ -68,6 +68,7 @@ All functional tests pass, proving **100% backward compatibility** maintained.
 ## Migration Strategy
 
 **Gradual Migration Pattern:**
+
 ```
 v0.3.0 (Current):
 ├── chiaroscuro_forge.py (monolithic - still active)
@@ -83,6 +84,7 @@ v0.3.0 (Current):
 ```
 
 **Import Resolution:**
+
 1. Try import from monolithic file (backward compatibility)
 2. Fall back to modular imports (future default)
 3. Ensure both paths work identically
@@ -105,7 +107,7 @@ v0.3.0 (Current):
 2. **batch.py** - Migrate 4 functions
    - batch_process_images()
    - analyze_batch()
-   - _process_single_image()
+   - \_process_single_image()
    - setup_logger()
 
 3. **comparison.py** - Migrate 2 functions
@@ -151,7 +153,7 @@ v0.3.0 (Current):
    - Resolution: Will reach 64%+ after Phase 2 complete
 
 3. **One Test References DEFAULT_WIN_SIZE** ⚠️
-   - Fixed: Removed non-existent constant from __init__.py
+   - Fixed: Removed non-existent constant from **init**.py
    - Status: Resolved
 
 ## Backward Compatibility
