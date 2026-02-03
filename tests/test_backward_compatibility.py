@@ -205,6 +205,14 @@ class TestModuleStructure(unittest.TestCase):
             'get_container',
             'inject',
             'setup_default_services',
+            # Phase 4.1: GPU acceleration (added in v0.4.0)
+            'GPUContext',
+            'gpu_available',
+            'get_gpu_info',
+            'get_gpu_backend',
+            'GPUBackend',
+            'GPUInfo',
+            'benchmark_operation',
         }
         
         self.assertEqual(set(chiaroscuro_forge.__all__), expected_exports,

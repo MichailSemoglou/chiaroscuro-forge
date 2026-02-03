@@ -122,6 +122,15 @@ if not _import_successful:
             inject,
             setup_default_services,
         )
+        from chiaroscuro_forge.gpu import (
+            GPUContext,
+            gpu_available,
+            get_gpu_info,
+            get_gpu_backend,
+            GPUBackend,
+            GPUInfo,
+            benchmark_operation,
+        )
         
         _import_successful = True
         
@@ -177,4 +186,12 @@ __all__ = [
     "get_container",
     "inject",
     "setup_default_services",
+    # Phase 4.1: GPU acceleration
+    "GPUContext",
+    "gpu_available",
+    "get_gpu_info",
+    "get_gpu_backend",
+    "GPUBackend",
+    "GPUInfo",
+    "benchmark_operation",
 ]
