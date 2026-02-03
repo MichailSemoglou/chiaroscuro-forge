@@ -112,6 +112,10 @@ if not _import_successful:
             invalidate_preset_cache,
             invalidate_stats_cache,
         )
+        from chiaroscuro_forge.tiling import (
+            process_image_tiled,
+            should_use_tiling,
+        )
         
         _import_successful = True
         
@@ -155,7 +159,11 @@ __all__ = [
     "load_preset",
     "list_presets",
     "ImageProcessingError",
+    # Phase 3.1: Cache management
     "get_cache_manager",
     "invalidate_preset_cache",
     "invalidate_stats_cache",
+    # Phase 3.2: Tile-based processing
+    "process_image_tiled",
+    "should_use_tiling",
 ]

@@ -93,6 +93,22 @@ DEFAULT_CONTRAST_PERCENTILES = (2, 98)
 DEFAULT_WORKERS = 4
 """Default number of parallel workers"""
 
+# Tile-Based Processing Constants
+DEFAULT_TILE_SIZE = 512
+"""Default tile size for large image processing (pixels)"""
+
+DEFAULT_TILE_OVERLAP = 64
+"""Default overlap between tiles for seamless stitching (pixels)"""
+
+TILING_MEMORY_THRESHOLD_MB = 100.0
+"""Memory threshold in MB above which tiling is used"""
+
+MIN_TILE_SIZE = 128
+"""Minimum allowed tile size"""
+
+MAX_TILE_SIZE = 2048
+"""Maximum allowed tile size"""
+
 # Quality Score Weights
 QUALITY_WEIGHTS: Dict[str, Dict[str, float]] = {
     "general": {

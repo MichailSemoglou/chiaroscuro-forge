@@ -15,6 +15,12 @@ from .exceptions import ImageProcessingError
 from .validation import _validate_image_path, _validate_processing_params
 from .metrics import calculate_perceptual_metrics, calculate_quality_score
 from .pipeline import create_standard_pipeline
+from .tiling import should_use_tiling, process_image_tiled
+from .constants import (
+    DEFAULT_TILE_SIZE,
+    DEFAULT_TILE_OVERLAP,
+    TILING_MEMORY_THRESHOLD_MB
+)
 
 
 def process_image(
@@ -39,6 +45,9 @@ def process_image(
     calculate_metrics: bool = True,
     calculate_advanced_metrics: bool = True,
     application_type: str = "general",
+    use_tiling: Optional[bool] = None,
+    tile_size: int = DEFAULT_TILE_SIZE,
+    tile_overlap: int = DEFAULT_TILE_OVERLAP,
 ) -> Tuple[np.ndarray, Optional[Dict[str, float]]]:
     """
     Process an image using a clean pipeline architecture.
@@ -48,6 +57,9 @@ def process_image(
     
     Refactored to use pipeline pattern - complexity reduced from ~250 lines
     to <100 lines in this function, with stage logic isolated in pipeline.py.
+    
+    For large images, tile-based processing is automatically used to reduce
+    memory consumption.
 
     Parameters
     ----------
@@ -87,6 +99,12 @@ def process_image(
         Whether to calculate advanced metrics.
     application_type : str, default="general"
         Application type for optimization.
+    use_tiling : bool, optional
+        Force tiling on/off. If None, automatically determined based on image size.
+    tile_size : int, default=512
+        Size of tiles for large image processing.
+    tile_overlap : int, default=64
+        Overlap between tiles for seamless stitching.
 
     Returns
     -------
@@ -147,11 +165,38 @@ def process_image(
             'original_for_color': image.copy(),
         }
 
-        # 4. Process through pipeline
-        pipeline = create_standard_pipeline()
-        processed_image, context = pipeline.process(image, context)
+        # 4. Determine if tiling should be used
+        if use_tiling is None:
+            # Auto-detect based on image size
+            bytes_per_pixel = 3 if image.ndim == 3 else 1
+            use_tiling = should_use_tiling(
+                image.shape[:2],
+                memory_threshold_mb=TILING_MEMORY_THRESHOLD_MB,
+                bytes_per_pixel=bytes_per_pixel
+            )
         
-        # 5. Calculate metrics
+        # 5. Process through pipeline (with or without tiling)
+        pipeline = create_standard_pipeline()
+        
+        if use_tiling:
+            # Define a wrapper function for pipeline processing
+            def process_tile(tile: np.ndarray, **kwargs) -> np.ndarray:
+                # Update context with tile-specific original for color preservation
+                tile_context = context.copy()
+                tile_context['original_for_color'] = tile.copy()
+                processed_tile, _ = pipeline.process(tile, tile_context)
+                return processed_tile
+            
+            processed_image = process_image_tiled(
+                image,
+                process_tile,
+                tile_size=tile_size,
+                overlap=tile_overlap
+            )
+        else:
+            processed_image, context = pipeline.process(image, context)
+        
+        # 6. Calculate metrics
         metrics_dict = None
         if calculate_metrics:
             if min(original_image.shape[:2]) < 7:
@@ -172,7 +217,7 @@ def process_image(
             except Exception as e:
                 raise ImageProcessingError(f"Could not calculate metrics: {str(e)}")
 
-        # 6. Save output
+        # 7. Save output
         if output_path:
             try:
                 output_dir = os.path.dirname(output_path)

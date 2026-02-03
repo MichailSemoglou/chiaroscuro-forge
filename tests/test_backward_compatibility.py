@@ -197,6 +197,9 @@ class TestModuleStructure(unittest.TestCase):
             'get_cache_manager',
             'invalidate_preset_cache',
             'invalidate_stats_cache',
+            # Phase 3.2: Tile-based processing (added in v0.3.0)
+            'process_image_tiled',
+            'should_use_tiling',
         }
         
         self.assertEqual(set(chiaroscuro_forge.__all__), expected_exports,
