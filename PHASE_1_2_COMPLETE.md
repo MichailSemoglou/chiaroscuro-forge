@@ -1,14 +1,17 @@
 # Phase 1 & 2 Progress Report
 
 ## Summary
+
 Successfully completed:
+
 - **Phase 1.3**: Security enhancements
-- **Phase 1.2**: Pipeline refactoring  
+- **Phase 1.2**: Pipeline refactoring
 - **Phase 2.1**: Initial testing framework (27% → target 80%)
 
 ## Phase 1.3: Security Enhancements ✅ (Commit: f80d6e3)
 
 ### Implemented Security Controls
+
 1. **File Size Limits**
    - `MAX_FILE_SIZE_MB = 100` (100 MB max)
    - Prevents memory exhaustion attacks
@@ -29,13 +32,15 @@ Successfully completed:
    - Replaced deprecated `imghdr` (Python 3.13 compatible)
 
 ### Files Modified
+
 - `chiaroscuro_forge/constants.py` (+140 lines)
 - `chiaroscuro_forge/validation.py` (+92 lines, enhanced security)
 
 ### Security Coverage
+
 - ✅ Path traversal prevention
 - ✅ File size validation
-- ✅ Pixel count limits  
+- ✅ Pixel count limits
 - ✅ Dimension restrictions
 - ✅ Magic number checks
 - ✅ Extension whitelist
@@ -45,14 +50,17 @@ Successfully completed:
 ## Phase 1.2: Pipeline Refactoring ✅ (Commit: e474d74)
 
 ### Architecture Changes
+
 Reduced `process_image()` from **330 lines to 190 lines** (42% reduction).
 
 #### New Pipeline Module (`pipeline.py` - 332 lines)
 
 **Abstract Base Class:**
+
 - `PipelineStage(ABC)`: Base class with `process(image, context)` method
 
 **6 Concrete Stages:**
+
 1. **ResizeStage**: Scale factor transformation
 2. **DenoiseStage**: Gaussian/median/bilateral denoising
 3. **SharpenStage**: Unsharp masking
@@ -61,16 +69,19 @@ Reduced `process_image()` from **330 lines to 190 lines** (42% reduction).
 6. **ColorPreservationStage**: LAB/ratio/RGB color preservation
 
 **Orchestrator:**
+
 - `ImageProcessingPipeline`: Chains stages, manages context
 - `create_standard_pipeline()`: Factory function for 6-stage pipeline
 
 ### Benefits
+
 - **Maintainability**: Each stage is independent, ~50 lines each
 - **Testability**: Can test stages in isolation
 - **Extensibility**: Easy to add/remove/reorder stages
 - **Readability**: Clear separation of concerns
 
 ### Context Parameters
+
 ```python
 {
     'scale_factor': 1.0,           # Resize
@@ -88,6 +99,7 @@ Reduced `process_image()` from **330 lines to 190 lines** (42% reduction).
 ```
 
 ### Files Modified
+
 - **Created**: `chiaroscuro_forge/pipeline.py` (332 lines)
 - **Refactored**: `chiaroscuro_forge/processing.py` (330 → 190 lines)
 - **Fixed**: `tests/test_backward_compatibility.py` (object identity → functional equivalence)
@@ -97,30 +109,32 @@ Reduced `process_image()` from **330 lines to 190 lines** (42% reduction).
 ## Phase 2.1: Testing Framework ✅ (Commit: 2498e0d)
 
 ### Test Suite Status
+
 - **Total Tests**: 44 (all passing)
 - **Overall Coverage**: 27% (was 22%)
 - **Target**: 80%+
 
 ### Module Coverage Breakdown
 
-| Module | Coverage | Missing Lines | Priority |
-|--------|----------|---------------|----------|
-| `constants.py` | **100%** | 0 | ✅ Complete |
-| `exceptions.py` | **100%** | 0 | ✅ Complete |
-| `__init__.py` | 63% | 37 | Low (import logic) |
-| **`pipeline.py`** | **59%** | 65 | **Medium** |
-| `processing.py` | 23% | 33 | **High** |
-| `presets.py` | 16% | 41 | Medium |
-| `validation.py` | 13% | 79 | **High** |
-| `batch.py` | 12% | 126 | Low |
-| `comparison.py` | 10% | 70 | Low |
-| `analysis.py` | 7% | 117 | Low |
-| `metrics.py` | 7% | 175 | **High** |
-| `cli.py` | 7% | 141 | Low (CLI tested manually) |
+| Module            | Coverage | Missing Lines | Priority                  |
+| ----------------- | -------- | ------------- | ------------------------- |
+| `constants.py`    | **100%** | 0             | ✅ Complete               |
+| `exceptions.py`   | **100%** | 0             | ✅ Complete               |
+| `__init__.py`     | 63%      | 37            | Low (import logic)        |
+| **`pipeline.py`** | **59%**  | 65            | **Medium**                |
+| `processing.py`   | 23%      | 33            | **High**                  |
+| `presets.py`      | 16%      | 41            | Medium                    |
+| `validation.py`   | 13%      | 79            | **High**                  |
+| `batch.py`        | 12%      | 126           | Low                       |
+| `comparison.py`   | 10%      | 70            | Low                       |
+| `analysis.py`     | 7%       | 117           | Low                       |
+| `metrics.py`      | 7%       | 175           | **High**                  |
+| `cli.py`          | 7%       | 141           | Low (CLI tested manually) |
 
 ### Pipeline Tests Created (`tests/test_pipeline.py` - 383 lines, 33 tests)
 
 **Coverage by Stage:**
+
 - ✅ `PipelineStage` (2 tests): Abstract class, naming
 - ✅ `ResizeStage` (5 tests): Up/downscale, edge cases
 - ✅ `DenoiseStage` (5 tests): Gaussian, median, bilateral, invalid method
@@ -132,6 +146,7 @@ Reduced `process_image()` from **330 lines to 190 lines** (42% reduction).
 - ✅ `create_standard_pipeline()` (2 tests): Creation, execution
 
 ### Test Quality Metrics
+
 - **Pass Rate**: 100% (44/44)
 - **Coverage Increase**: +5% overall
 - **Pipeline Coverage**: 24% → 59%
@@ -145,7 +160,9 @@ Reduced `process_image()` from **330 lines to 190 lines** (42% reduction).
 ### High Priority Testing (to reach 80%)
 
 #### 1. **validation.py** (13% → 80%)
+
 Missing coverage:
+
 - `_validate_image_path()` security checks (lines 124-208)
 - Path traversal detection
 - Magic number verification
@@ -155,7 +172,9 @@ Missing coverage:
 **Estimated tests needed**: ~20
 
 #### 2. **processing.py** (23% → 80%)
+
 Missing coverage:
+
 - End-to-end processing (lines 102-190)
 - Error handling paths
 - Metrics calculation
@@ -164,7 +183,9 @@ Missing coverage:
 **Estimated tests needed**: ~10
 
 #### 3. **metrics.py** (7% → 80%)
+
 Missing coverage:
+
 - `calculate_image_quality_metrics()` (lines 87-129)
 - Sharpness detection
 - Contrast measurement
@@ -174,7 +195,9 @@ Missing coverage:
 **Estimated tests needed**: ~15
 
 #### 4. **Pipeline uncovered branches** (59% → 80%)
+
 Missing coverage:
+
 - Denoise: median/bilateral branches (lines 86-101)
 - Contrast: CLAHE, standard, adaptive branches (lines 133-178)
 - Color: LAB/ratio preservation (lines 211-255)
@@ -182,10 +205,12 @@ Missing coverage:
 **Estimated tests needed**: ~8
 
 ### Medium Priority
+
 - `presets.py` (16% → 60%): Save/load/list presets (~10 tests)
 - `analysis.py` (7% → 60%): Image analysis functions (~15 tests)
 
 ### Low Priority
+
 - `batch.py`, `comparison.py`, `cli.py`: User-facing modules
 
 ---

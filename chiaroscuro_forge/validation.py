@@ -356,6 +356,8 @@ def validate_processing_params(
         raise ImageProcessingError("Interpolation orders must be between 0 and 5")
 
 
-# Backward compatibility aliases with leading underscore
-_validate_image_path = validate_image_path
+# Note: _validate_image_path is the actual implementation above.
+# The public API validate_image_path() calls it.
+# Do NOT create backward compat aliases here - they cause infinite recursion.
+# For backward compatibility with code expecting underscore prefix:
 _validate_processing_params = validate_processing_params
