@@ -11,3 +11,7 @@ scikit-image>=0.18.0
 # Optional REST API dependencies (Phase 4.3)
 # Install for API functionality:
 # pip install "fastapi[all]" uvicorn
+
+# Property-based testing dependencies (Phase 4.4)
+# Install for advanced testing:
+# pip install hypothesis

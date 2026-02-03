@@ -102,13 +102,13 @@ while True:
         f'http://localhost:8000/api/v1/jobs/{job_id}',
         headers={'X-API-Key': 'dev-key-12345'}
     )
-    
+
     status = response.json()
     print(f"Progress: {status['progress']*100:.1f}%")
-    
+
     if status['status'] in ['completed', 'failed']:
         break
-    
+
     time.sleep(1)
 
 if status['status'] == 'completed':
