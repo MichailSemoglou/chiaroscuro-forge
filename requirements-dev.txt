@@ -29,6 +29,8 @@ pre-commit>=3.3.0
 # REST API
 fastapi>=0.104.0
 uvicorn>=0.24.0
+python-multipart>=0.0.6
+httpx>=0.25.0
 
 # Optional GPU Acceleration (install as needed)
 # pyopencl>=2023.1.0  # OpenCL support (cross-platform)
