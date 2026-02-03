@@ -97,11 +97,16 @@ class TestBackwardCompatibility(unittest.TestCase):
             self.assertTrue(hasattr(chiaroscuro_forge, '__author__'))
             self.assertTrue(hasattr(chiaroscuro_forge, '__license__'))
             
-            # Version should be 0.3.0 or later
+            # Version should be 0.3.0 or later (or 1.x.x or higher)
             version = chiaroscuro_forge.__version__
             major, minor, *_ = version.split('.')
-            self.assertGreaterEqual(int(major), 0)
-            self.assertGreaterEqual(int(minor), 3)
+            major_int = int(major)
+            minor_int = int(minor)
+            # Either major >= 1, or major == 0 and minor >= 3
+            self.assertTrue(
+                major_int >= 1 or (major_int == 0 and minor_int >= 3),
+                f"Version {version} should be >= 0.3.0"
+            )
             
         except (ImportError, AttributeError) as e:
             self.fail(f"Failed to access version info: {e}")

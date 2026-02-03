@@ -518,14 +518,14 @@ def create_queue(backend: str = 'local', **kwargs) -> TaskQueue:
         return LocalQueue(max_workers=kwargs.get('max_workers'))
     elif backend == 'redis':
         # Redis backend not yet implemented
-        raise NotImplementedError(
+        raise ImportError(
             "Redis backend is not yet implemented. "
             "Currently only 'local' backend is supported. "
             "Future implementation will require: pip install redis rq"
         )
     elif backend == 'celery':
         # Celery backend not yet implemented
-        raise NotImplementedError(
+        raise ImportError(
             "Celery backend is not yet implemented. "
             "Currently only 'local' backend is supported. "
             "Future implementation will require: pip install celery[redis]"
