@@ -6,7 +6,6 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/chiaroscuro-forge.svg)](https://pypi.org/project/chiaroscuro-forge/)
 [![License](https://img.shields.io/pypi/l/chiaroscuro-forge.svg)](https://github.com/MichailSemoglou/chiaroscuro-forge/blob/main/LICENSE)
 [![Tests](https://github.com/MichailSemoglou/chiaroscuro-forge/workflows/Tests%20and%20Code%20Quality/badge.svg)](https://github.com/MichailSemoglou/chiaroscuro-forge/actions)
-[![codecov](https://codecov.io/gh/MichailSemoglou/chiaroscuro-forge/branch/main/graph/badge.svg)](https://codecov.io/gh/MichailSemoglou/chiaroscuro-forge)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18200572.svg)](https://doi.org/10.5281/zenodo.18200572)
 
@@ -26,7 +25,7 @@ An intelligent image enhancement tool inspired by Renaissance techniques. Featur
 
 ### Requirements
 
-- Python 3.7+
+- Python 3.8+
 - NumPy
 - SciPy
 - scikit-image
