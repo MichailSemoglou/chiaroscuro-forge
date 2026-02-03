@@ -1,0 +1,28 @@
+"""
+Development Dependencies
+
+Install these packages for development and testing:
+    pip install -r requirements-dev.txt
+"""
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-xdist>=3.3.0
+
+# Code Quality
+black>=23.7.0
+flake8>=6.1.0
+flake8-docstrings>=1.7.0
+mypy>=1.5.0
+pylint>=2.17.0
+
+# Documentation
+sphinx>=7.1.0
+sphinx-rtd-theme>=1.3.0
+
+# Type Stubs
+types-setuptools>=68.0.0
+
+# Pre-commit hooks
+pre-commit>=3.3.0
