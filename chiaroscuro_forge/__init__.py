@@ -41,7 +41,7 @@ Migration Note:
     transition period. See MIGRATION.md for details.
 """
 
-__version__ = "0.3.0"
+__version__ = "1.0.0"
 __author__ = "Michail Semoglou"
 __email__ = "m.semoglou@tongji.edu.cn"
 __license__ = "MIT"
