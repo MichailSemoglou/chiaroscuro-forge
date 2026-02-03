@@ -6,6 +6,7 @@ and processing parameters.
 """
 
 import os
+import re
 from pathlib import Path
 from typing import Tuple, Optional
 import numpy as np
@@ -93,6 +94,43 @@ def validate_array(
         raise ImageProcessingError(f"{name} contains NaN or Inf values")
 
 
+def _is_path_traversal_tilde(path: str) -> bool:
+    """
+    Check if ~ in path indicates home directory traversal (not Windows short name).
+    
+    Windows uses ~ in 8.3 short filenames (e.g., RUNNER~1), which are legitimate.
+    ~ at the start of a path or after a separator indicates home directory expansion.
+    
+    Parameters
+    ----------
+    path : str
+        Path to check.
+        
+    Returns
+    -------
+    bool
+        True if ~ indicates path traversal, False if it's a Windows short name.
+    """
+    # Normalize path separators for consistent checking
+    normalized = path.replace('\\', '/')
+    
+    # Check for ~ at start or after path separator (indicates home directory)
+    # Pattern matches: ~/path, /~/path, //~/path, etc.
+    if normalized.startswith('~/'):
+        return True
+    if '/~/' in normalized:
+        return True
+    if normalized.endswith('/~'):
+        return True
+    
+    # Check for standalone ~ (entire path is just ~)
+    if normalized == '~':
+        return True
+    
+    # ~ embedded in a path component (like RUNNER~1) is OK - Windows short name
+    return False
+
+
 def _validate_image_path(image_path: str) -> None:
     """
     Comprehensive security validation for image file paths.
@@ -132,9 +170,16 @@ def _validate_image_path(image_path: str) -> None:
         )
     
     # Security: Path traversal attack prevention
-    path_str = str(image_path).lower()
+    path_str = str(image_path)
     for pattern in DENIED_PATH_PATTERNS:
-        if pattern in image_path:
+        if pattern == '~':
+            # Special handling for ~ to allow Windows 8.3 short filenames
+            if _is_path_traversal_tilde(path_str):
+                raise ImageProcessingError(
+                    f"Path contains denied pattern '{pattern}'. "
+                    "Potential path traversal attack."
+                )
+        elif pattern in path_str:
             raise ImageProcessingError(
                 f"Path contains denied pattern '{pattern}'. "
                 "Potential path traversal attack."
