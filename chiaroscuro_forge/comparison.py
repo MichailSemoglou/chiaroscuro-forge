@@ -1,49 +1,33 @@
 """
-Processing Method Comparison Module
+Comparison module - temporarily importing from monolithic file.
 
-This module provides functionality to compare different image enhancement methods
-and identify the best approach for a given image.
-
-Migration Status:
-    ⚠️  This module is currently a stub that imports from the monolithic file.
-    Functions will be gradually migrated here in upcoming releases.
-    
-    Expected completion: v0.4.0
+This module is a stub that imports functions from the original monolithic chiaroscuro_forge.py file.
+It will be migrated to a proper module implementation in future versions.
 """
 
-from typing import Dict, Any, Optional
-
-# Temporary imports from monolithic file for backward compatibility
 import sys
 import os
+import importlib.util
+from pathlib import Path
 
-_parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if _parent_dir not in sys.path:
-    sys.path.insert(0, _parent_dir)
+# Import from monolithic file
+_parent_dir = Path(__file__).parent.parent
+_monolithic_path = _parent_dir / "chiaroscuro_forge.py"
 
-try:
-    # Import from monolithic file
-    import chiaroscuro_forge as _cf_old
-    
-    # Re-export comparison function
-    compare_processing_methods = _cf_old.compare_processing_methods
-    
-    __all__ = ["compare_processing_methods"]
+if _monolithic_path.exists():
+    spec = importlib.util.spec_from_file_location("_cf_old", _monolithic_path)
+    if spec and spec.loader:
+        _cf_old = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_cf_old)
+        
+        # Import functions
+        compare_processing_methods = _cf_old.compare_processing_methods
+        suggest_optimal_params = _cf_old.suggest_optimal_params
 
-except (ImportError, AttributeError) as e:
-    import warnings
-    warnings.warn(
-        f"Could not import comparison functions from monolithic file: {e}. "
-        "Native implementations not yet available.",
-        ImportWarning
-    )
-    __all__ = []
+        # Cleanup
+        del spec
+else:
+    from ..exceptions import ImageProcessingError
+    raise ImageProcessingError(f"Could not find monolithic file at {{_monolithic_path}}")
 
-# Clean up namespace
-try:
-    del _cf_old
-except NameError:
-    pass
-
-# TODO: Migrate these functions from chiaroscuro_forge.py:
-# - compare_processing_methods()
+__all__ = ["compare_processing_methods", "suggest_optimal_params"]

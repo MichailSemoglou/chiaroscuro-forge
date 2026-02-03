@@ -1,4 +1,21 @@
+#!/usr/bin/env python3
 """
+Complete migration script to create all modular files from monolithic chiaroscuro_forge.py
+"""
+
+import os
+
+# Read the entire monolithic file
+with open("chiaroscuro_forge.py", "r") as f:
+    content = f.read()
+
+# Parse sections (this is approximate based on the code structure)
+lines = content.split("\n")
+
+#metrics.py already created
+
+# Create processing.py - contains process_image and validation helpers
+processing_content = '''"""
 Image processing functions.
 
 This module contains the main image processing pipeline and related validation functions.
@@ -327,3 +344,66 @@ def process_image(
         raise
     except Exception as e:
         raise ImageProcessingError(f"Unexpected error in image processing: {str(e)}")
+'''
+
+# Write processing.py
+with open("chiaroscuro_forge/processing.py", "w") as f:
+    f.write(processing_content)
+
+print("Created processing.py")
+
+# Create stub files for other modules that just import from monolithic file temporarily
+stub_modules = {
+    "analysis": ["analyze_image_characteristics", "get_image_statistics"],
+    "batch": ["batch_process_images", "analyze_batch", "_process_single_image", "_process_single_image_wrapper", "setup_logger"],
+    "comparison": ["compare_processing_methods", "suggest_optimal_params"],
+    "presets": ["load_preset", "save_preset", "list_presets"],
+    "cli": ["main"],
+}
+
+for module_name, functions in stub_modules.items():
+    stub_content = f'''"""
+{module_name.capitalize()} module - temporarily importing from monolithic file.
+
+This module is a stub that imports functions from the original monolithic chiaroscuro_forge.py file.
+It will be migrated to a proper module implementation in future versions.
+"""
+
+import sys
+import os
+import importlib.util
+from pathlib import Path
+
+# Import from monolithic file
+_parent_dir = Path(__file__).parent.parent
+_monolithic_path = _parent_dir / "chiaroscuro_forge.py"
+
+if _monolithic_path.exists():
+    spec = importlib.util.spec_from_file_location("_cf_old", _monolithic_path)
+    if spec and spec.loader:
+        _cf_old = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_cf_old)
+        
+        # Import functions
+'''
+    
+    for func in functions:
+        stub_content += f"        {func} = _cf_old.{func}\n"
+    
+    stub_content += '''
+        # Cleanup
+        del spec
+else:
+    from ..exceptions import ImageProcessingError
+    raise ImageProcessingError(f"Could not find monolithic file at {{_monolithic_path}}")
+
+__all__ = [''' + ", ".join(f'"{f}"' for f in functions) + ''']
+'''
+    
+    with open(f"chiaroscuro_forge/{module_name}.py", "w") as f:
+        f.write(stub_content)
+    
+    print(f"Created {module_name}.py")
+
+print("\n✅ All modules created successfully!")
+print("Run tests with: python3 -m pytest tests/ -v")

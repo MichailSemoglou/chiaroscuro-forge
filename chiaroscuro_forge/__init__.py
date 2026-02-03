@@ -82,9 +82,6 @@ if not _import_successful:
                 list_presets = _cf_monolithic.list_presets
                 ImageProcessingError = _cf_monolithic.ImageProcessingError
                 
-                # Extract commonly used constants
-                DEFAULT_WIN_SIZE = _cf_monolithic.DEFAULT_WIN_SIZE
-                
                 _import_successful = True
                 
                 # Clean up
@@ -110,7 +107,6 @@ if not _import_successful:
         from chiaroscuro_forge.comparison import compare_processing_methods
         from chiaroscuro_forge.presets import save_preset, load_preset, list_presets
         from chiaroscuro_forge.exceptions import ImageProcessingError
-        from chiaroscuro_forge.constants import DEFAULT_WIN_SIZE
         
         _import_successful = True
         

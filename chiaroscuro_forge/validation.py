@@ -206,3 +206,8 @@ def validate_processing_params(
         0 <= order_val <= 5 for order_val in [order, order_rescale, order_rotate]
     ):
         raise ImageProcessingError("Interpolation orders must be between 0 and 5")
+
+
+# Backward compatibility aliases with leading underscore
+_validate_image_path = validate_image_path
+_validate_processing_params = validate_processing_params
