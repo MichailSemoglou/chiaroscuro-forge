@@ -8,20 +8,15 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 
 def _read_version() -> str:
-    # First try to read from the new package structure
+    # Read version from the package __init__.py
     init_path = pathlib.Path(__file__).parent / "chiaroscuro_forge" / "__init__.py"
-    if init_path.exists():
-        content = init_path.read_text(encoding="utf-8")
-        match = re.search(r'^__version__\s*=\s*"([^"]+)"\s*$', content, re.M)
-        if match:
-            return match.group(1)
+    if not init_path.exists():
+        raise RuntimeError("Unable to find chiaroscuro_forge/__init__.py")
     
-    # Fallback to old monolithic file
-    module_path = pathlib.Path(__file__).parent / "chiaroscuro_forge.py"
-    content = module_path.read_text(encoding="utf-8")
+    content = init_path.read_text(encoding="utf-8")
     match = re.search(r'^__version__\s*=\s*"([^"]+)"\s*$', content, re.M)
     if not match:
-        raise RuntimeError("Unable to find __version__")
+        raise RuntimeError("Unable to find __version__ in __init__.py")
     return match.group(1)
 
 setup(
