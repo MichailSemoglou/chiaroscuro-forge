@@ -1,0 +1,8 @@
+{
+    "name": "test_batch_preset",
+    "description": "Test preset",
+    "params": {
+        "denoise_sigma": 2.0,
+        "sharpen_amount": 2.0
+    }
+}

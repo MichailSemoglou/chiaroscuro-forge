@@ -11,14 +11,18 @@ from skimage import io, color, filters, feature
 from skimage import img_as_float, img_as_ubyte
 from .exceptions import ImageProcessingError
 from .validation import _validate_image_path, validate_array
+from .cache import cached_image_stats
 
 
+@cached_image_stats(ttl=3600)  # Cache for 1 hour
 def analyze_image_characteristics(image_path: str) -> Dict[str, Any]:
     """
     Analyze image characteristics and suggest optimal processing parameters.
 
     Examines color saturation, brightness, contrast, noise level, edge density,
     and texture to automatically determine appropriate enhancement settings.
+    
+    Results are cached for 1 hour to improve performance on repeated analyses.
 
     Parameters
     ----------

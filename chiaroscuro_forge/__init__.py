@@ -107,6 +107,11 @@ if not _import_successful:
         from chiaroscuro_forge.comparison import compare_processing_methods
         from chiaroscuro_forge.presets import save_preset, load_preset, list_presets
         from chiaroscuro_forge.exceptions import ImageProcessingError
+        from chiaroscuro_forge.cache import (
+            get_cache_manager,
+            invalidate_preset_cache,
+            invalidate_stats_cache,
+        )
         
         _import_successful = True
         
@@ -150,4 +155,7 @@ __all__ = [
     "load_preset",
     "list_presets",
     "ImageProcessingError",
+    "get_cache_manager",
+    "invalidate_preset_cache",
+    "invalidate_stats_cache",
 ]

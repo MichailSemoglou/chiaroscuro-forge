@@ -9,10 +9,15 @@ import os
 import json
 from typing import Dict, List, Any
 from .exceptions import ImageProcessingError
+from .cache import cached_preset, invalidate_preset_cache
 
-
+@cached_preset()  # Cache indefinitely unless invalidated
 def load_preset(preset_name: str) -> Dict[str, Any]:
     """
+    Load a preset configuration from disk.
+    
+    Results are cached indefinitely to avoid repeated disk I/O.
+    Cache is automatically invalidated when presets are saved
     Load a preset configuration from disk.
 
     Parameters
@@ -62,6 +67,9 @@ def save_preset(
 ) -> None:
     """
     Save processing parameters as a preset.
+    
+    Automatically invalidates the cache for this preset to ensure
+    fresh data is loaded on next access.
 
     Parameters
     ----------
@@ -97,6 +105,9 @@ def save_preset(
     try:
         with open(preset_path, "w") as f:
             json.dump(preset_data, f, indent=4)
+        
+        # Invalidate cache for this preset
+        invalidate_preset_cache(preset_name)
     except Exception as e:
         raise ImageProcessingError(f"Failed to save preset: {e}")
 

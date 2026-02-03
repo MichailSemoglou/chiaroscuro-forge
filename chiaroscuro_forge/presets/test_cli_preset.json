@@ -1,0 +1,7 @@
+{
+    "name": "test_cli_preset",
+    "description": "Test",
+    "params": {
+        "denoise_sigma": 2.0
+    }
+}

@@ -193,6 +193,10 @@ class TestModuleStructure(unittest.TestCase):
             'load_preset',
             'list_presets',
             'ImageProcessingError',
+            # Phase 3.1: Cache management (added in v0.3.0)
+            'get_cache_manager',
+            'invalidate_preset_cache',
+            'invalidate_stats_cache',
         }
         
         self.assertEqual(set(chiaroscuro_forge.__all__), expected_exports,
