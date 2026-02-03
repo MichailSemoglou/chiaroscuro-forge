@@ -1,9 +1,7 @@
-"""
-Development Dependencies
-
-Install these packages for development and testing:
-    pip install -r requirements-dev.txt
-"""
+# Development Dependencies
+#
+# Install these packages for development and testing:
+#     pip install -r requirements-dev.txt
 
 # Testing
 pytest>=7.4.0
