@@ -174,8 +174,10 @@ def feature_similarity(
     if method == "hog":
         # HOG feature extraction
         try:
-            hog1 = feature.hog(img1, multichannel=multichannel)
-            hog2 = feature.hog(img2, multichannel=multichannel)
+            # Note: multichannel parameter deprecated in scikit-image 0.19+
+            # Now inferred from ndim (3 = multichannel)
+            hog1 = feature.hog(img1, channel_axis=-1 if img1.ndim == 3 else None)
+            hog2 = feature.hog(img2, channel_axis=-1 if img2.ndim == 3 else None)
 
             # Calculate cosine similarity
             similarity = np.dot(hog1, hog2) / (np.linalg.norm(hog1) * np.linalg.norm(hog2))
