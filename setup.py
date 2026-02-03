@@ -76,7 +76,10 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "chiaroscuro-forge=chiaroscuro_forge:main",
+            "chiaroscuro-forge=chiaroscuro_forge.cli:main",
         ],
     },
+    include_package_data=True,
+    zip_safe=False,
 )
+

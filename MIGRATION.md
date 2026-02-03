@@ -9,6 +9,7 @@ Chiaroscuro Forge has been refactored to follow professional open-source standar
 ### Package Structure
 
 **Before (v0.2.x):**
+
 ```
 chiaroscuro-forge/
 ├── chiaroscuro_forge.py  (2,202 lines - everything in one file)
@@ -18,6 +19,7 @@ chiaroscuro-forge/
 ```
 
 **After (v0.3.0):**
+
 ```
 chiaroscuro-forge/
 ├── chiaroscuro_forge/
@@ -81,6 +83,7 @@ from chiaroscuro_forge.batch import batch_process_images
 The original `chiaroscuro_forge.py` file is **DEPRECATED** but will be maintained for **6 months** (until August 2026) for backward compatibility.
 
 **Timeline:**
+
 - **v0.3.0 (Now)**: Old file deprecated, new package structure introduced
 - **v0.4.0 (May 2026)**: Deprecation warnings added
 - **v0.5.0 (August 2026)**: Old file removed
@@ -96,6 +99,7 @@ The original `chiaroscuro_forge.py` file is **DEPRECATED** but will be maintaine
 ### 1. Comprehensive Documentation
 
 Every function now has detailed docstrings with:
+
 - Parameter descriptions
 - Return value documentation
 - Usage examples
@@ -155,6 +159,7 @@ ImageProcessingError: Denoise type must be one of ['gaussian', 'median', 'bilate
 ### 6. Code Quality Tools
 
 Integrated development tools:
+
 - **Black**: Automatic code formatting
 - **Flake8**: Style guide enforcement
 - **MyPy**: Static type checking
@@ -162,6 +167,7 @@ Integrated development tools:
 - **Coverage**: Code coverage reporting
 
 Install development tools:
+
 ```bash
 pip install -r requirements-dev.txt
 ```
@@ -202,18 +208,18 @@ def test_backward_compatibility():
             compare_processing_methods,
             ImageProcessingError
         )
-        
+
         # Test new-style imports
         from chiaroscuro_forge.processing import process_image as process_image_new
         from chiaroscuro_forge.analysis import analyze_image_characteristics as analyze_new
-        
+
         # Verify they're the same
         assert process_image is process_image_new
         assert analyze_image_characteristics is analyze_new
-        
+
         print("✅ All backward compatibility tests passed!")
         return True
-        
+
     except (ImportError, AssertionError) as e:
         print(f"❌ Compatibility test failed: {e}")
         return False
@@ -236,6 +242,7 @@ If you encounter any issues during migration:
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 The new modular structure makes it much easier to:
+
 - Add new features
 - Fix bugs
 - Write tests
