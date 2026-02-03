@@ -200,6 +200,11 @@ class TestModuleStructure(unittest.TestCase):
             # Phase 3.2: Tile-based processing (added in v0.3.0)
             'process_image_tiled',
             'should_use_tiling',
+            # Phase 3.3: Dependency injection (added in v0.3.0)
+            'ServiceContainer',
+            'get_container',
+            'inject',
+            'setup_default_services',
         }
         
         self.assertEqual(set(chiaroscuro_forge.__all__), expected_exports,

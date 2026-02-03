@@ -116,6 +116,12 @@ if not _import_successful:
             process_image_tiled,
             should_use_tiling,
         )
+        from chiaroscuro_forge.di import (
+            ServiceContainer,
+            get_container,
+            inject,
+            setup_default_services,
+        )
         
         _import_successful = True
         
@@ -166,4 +172,9 @@ __all__ = [
     # Phase 3.2: Tile-based processing
     "process_image_tiled",
     "should_use_tiling",
+    # Phase 3.3: Dependency injection
+    "ServiceContainer",
+    "get_container",
+    "inject",
+    "setup_default_services",
 ]
