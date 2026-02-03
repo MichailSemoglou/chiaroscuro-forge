@@ -1,34 +1,149 @@
 """
-Presets module - temporarily importing from monolithic file.
+Preset management for image processing parameters.
 
-This module is a stub that imports functions from the original monolithic chiaroscuro_forge.py file.
-It will be migrated to a proper module implementation in future versions.
+This module provides functionality to save, load, and list processing parameter presets,
+allowing users to reuse successful enhancement configurations across multiple images.
 """
 
-import sys
 import os
-import importlib.util
-from pathlib import Path
+import json
+from typing import Dict, List, Any
+from .exceptions import ImageProcessingError
 
-# Import from monolithic file
-_parent_dir = Path(__file__).parent.parent
-_monolithic_path = _parent_dir / "chiaroscuro_forge.py"
 
-if _monolithic_path.exists():
-    spec = importlib.util.spec_from_file_location("_cf_old", _monolithic_path)
-    if spec and spec.loader:
-        _cf_old = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(_cf_old)
-        
-        # Import functions
-        load_preset = _cf_old.load_preset
-        save_preset = _cf_old.save_preset
-        list_presets = _cf_old.list_presets
+def load_preset(preset_name: str) -> Dict[str, Any]:
+    """
+    Load a preset configuration from disk.
 
-        # Cleanup
-        del spec
-else:
-    from ..exceptions import ImageProcessingError
-    raise ImageProcessingError(f"Could not find monolithic file at {{_monolithic_path}}")
+    Parameters
+    ----------
+    preset_name : str
+        Name of the preset to load (without .json extension)
+
+    Returns
+    -------
+    dict
+        Dictionary of processing parameters
+
+    Raises
+    ------
+    ImageProcessingError
+        If preset file not found or invalid format
+
+    Examples
+    --------
+    >>> params = load_preset("photography")
+    >>> process_image("photo.jpg", **params)
+    """
+    preset_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "presets")
+    preset_path = os.path.join(preset_dir, f"{preset_name}.json")
+
+    if not os.path.exists(preset_path):
+        raise ImageProcessingError(f"Preset file not found: {preset_path}")
+
+    try:
+        with open(preset_path, "r") as f:
+            preset_data = json.load(f)
+
+        if "name" not in preset_data or "params" not in preset_data:
+            raise ImageProcessingError(
+                "Invalid preset format: missing 'name' or 'params' fields"
+            )
+
+        return preset_data["params"]
+    except json.JSONDecodeError as e:
+        raise ImageProcessingError(f"Failed to parse preset file: {e}")
+    except Exception as e:
+        raise ImageProcessingError(f"Error loading preset: {e}")
+
+
+def save_preset(
+    preset_name: str, params: Dict[str, Any], description: str = ""
+) -> None:
+    """
+    Save processing parameters as a preset.
+
+    Parameters
+    ----------
+    preset_name : str
+        Name for the preset (without .json extension)
+    params : dict
+        Dictionary of processing parameters to save
+    description : str, optional
+        Human-readable description of the preset
+
+    Raises
+    ------
+    ImageProcessingError
+        If unable to create preset directory or save file
+
+    Examples
+    --------
+    >>> params = {"equalize_method": "clahe", "sharpen_amount": 1.8}
+    >>> save_preset("my_preset", params, "High contrast for documents")
+    """
+    preset_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "presets")
+
+    if not os.path.exists(preset_dir):
+        try:
+            os.makedirs(preset_dir)
+        except Exception as e:
+            raise ImageProcessingError(f"Failed to create presets directory: {e}")
+
+    preset_path = os.path.join(preset_dir, f"{preset_name}.json")
+
+    preset_data = {"name": preset_name, "description": description, "params": params}
+
+    try:
+        with open(preset_path, "w") as f:
+            json.dump(preset_data, f, indent=4)
+    except Exception as e:
+        raise ImageProcessingError(f"Failed to save preset: {e}")
+
+
+def list_presets() -> List[Dict[str, Any]]:
+    """
+    List all available presets.
+
+    Returns
+    -------
+    list of dict
+        List of preset metadata dictionaries with keys:
+        - name: Preset name
+        - description: Preset description
+        - filename: JSON filename
+
+    Examples
+    --------
+    >>> presets = list_presets()
+    >>> for preset in presets:
+    ...     print(f"{preset['name']}: {preset['description']}")
+    """
+    preset_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "presets")
+
+    if not os.path.exists(preset_dir):
+        return []
+
+    presets = []
+
+    for filename in os.listdir(preset_dir):
+        if filename.endswith(".json"):
+            preset_path = os.path.join(preset_dir, filename)
+            try:
+                with open(preset_path, "r") as f:
+                    preset_data = json.load(f)
+
+                presets.append(
+                    {
+                        "name": preset_data.get("name", filename[:-5]),
+                        "description": preset_data.get("description", ""),
+                        "filename": filename,
+                    }
+                )
+            except:
+                continue
+
+    return presets
+
 
 __all__ = ["load_preset", "save_preset", "list_presets"]

@@ -1,33 +1,306 @@
 """
-Comparison module - temporarily importing from monolithic file.
+Comparison and optimization functions for processing methods.
 
-This module is a stub that imports functions from the original monolithic chiaroscuro_forge.py file.
-It will be migrated to a proper module implementation in future versions.
+This module provides functionality for comparing different processing methods
+and suggesting optimal parameters based on image or batch analysis.
 """
 
-import sys
 import os
-import importlib.util
-from pathlib import Path
+from typing import Dict, Optional, Any
 
-# Import from monolithic file
-_parent_dir = Path(__file__).parent.parent
-_monolithic_path = _parent_dir / "chiaroscuro_forge.py"
+from .exceptions import ImageProcessingError
+from .processing import process_image
+from .validation import _validate_image_path
 
-if _monolithic_path.exists():
-    spec = importlib.util.spec_from_file_location("_cf_old", _monolithic_path)
-    if spec and spec.loader:
-        _cf_old = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(_cf_old)
-        
-        # Import functions
-        compare_processing_methods = _cf_old.compare_processing_methods
-        suggest_optimal_params = _cf_old.suggest_optimal_params
 
-        # Cleanup
-        del spec
-else:
-    from ..exceptions import ImageProcessingError
-    raise ImageProcessingError(f"Could not find monolithic file at {{_monolithic_path}}")
+def compare_processing_methods(
+    image_path: str,
+    output_dir: Optional[str] = None,
+    application_type: str = "general",
+    calculate_advanced_metrics: bool = True,
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Compare multiple processing methods on a single image.
+
+    Args:
+        image_path: Path to input image
+        output_dir: Optional directory to save processed images
+        application_type: Application type for processing optimization
+        calculate_advanced_metrics: Whether to calculate advanced quality metrics
+
+    Returns:
+        Dictionary with results for each method and the best method
+    """
+    _validate_image_path(image_path)
+
+    valid_app_types = ["general", "photography", "medical", "document", "art"]
+    if application_type not in valid_app_types:
+        raise ImageProcessingError(f"Application type must be one of {valid_app_types}")
+
+    if output_dir and not os.path.exists(output_dir):
+        try:
+            os.makedirs(output_dir)
+        except Exception as e:
+            raise ImageProcessingError(f"Failed to create output directory: {str(e)}")
+
+    methods = [
+        {
+            "name": "Standard Equalization (HSV)",
+            "params": {
+                "equalize_method": "standard",
+                "color_preservation": "none",
+                "denoise_type": "gaussian",
+                "denoise_sigma": 0.8,
+                "sharpen": True,
+                "sharpen_amount": 1.2,
+                "gamma_correction": 1.05,
+            },
+        },
+        {
+            "name": "LAB Color Preservation",
+            "params": {
+                "equalize_method": "stretch",
+                "color_preservation": "lab",
+                "color_preservation_strength": 0.9,
+                "denoise_type": "gaussian",
+                "denoise_sigma": 0.8,
+                "sharpen": True,
+                "sharpen_amount": 1.2,
+                "gamma_correction": 1.05,
+            },
+        },
+        {
+            "name": "Gentle Enhancement",
+            "params": {
+                "equalize_method": "stretch",
+                "contrast_stretch_percentiles": (5, 95),
+                "color_preservation": "lab",
+                "color_preservation_strength": 0.9,
+                "denoise_type": "gaussian",
+                "denoise_sigma": 0.5,
+                "sharpen": True,
+                "sharpen_amount": 1.0,
+                "gamma_correction": 1.0,
+            },
+        },
+        {
+            "name": "Color Ratio Preservation",
+            "params": {
+                "equalize_method": "stretch",
+                "color_preservation": "ratio",
+                "contrast_stretch_percentiles": (2, 98),
+                "denoise_type": "gaussian",
+                "denoise_sigma": 0.8,
+                "sharpen": True,
+                "sharpen_amount": 1.2,
+                "gamma_correction": 1.05,
+            },
+        },
+        {
+            "name": "Detail Preservation",
+            "params": {
+                "equalize_method": "clahe",
+                "clip_limit": 0.02,
+                "clip_limit_kernel_size": 16,
+                "color_preservation": "lab",
+                "color_preservation_strength": 0.8,
+                "denoise_type": "bilateral",
+                "denoise_sigma": 0.6,
+                "sharpen": True,
+                "sharpen_amount": 1.4,
+                "gamma_correction": 1.0,
+            },
+        },
+        {
+            "name": "High Dynamic Range (HDR)",
+            "params": {
+                "equalize_method": "clahe",
+                "clip_limit": 0.03,
+                "clip_limit_kernel_size": 16,
+                "color_preservation": "lab",
+                "color_preservation_strength": 0.85,
+                "denoise_type": "bilateral",
+                "denoise_sigma": 0.6,
+                "sharpen": True,
+                "sharpen_amount": 1.6,
+                "gamma_correction": 0.9,
+            },
+        },
+        {
+            "name": "Vintage Look",
+            "params": {
+                "equalize_method": "standard",
+                "color_preservation": "lab",
+                "color_preservation_strength": 0.5,
+                "denoise_type": "median",
+                "denoise_sigma": 1.0,
+                "sharpen": False,
+                "gamma_correction": 1.2,
+            },
+        },
+        {
+            "name": "Black & White Contrast",
+            "params": {
+                "equalize_method": "stretch",
+                "contrast_stretch_percentiles": (2, 98),
+                "color_preservation": "none",
+                "denoise_type": "gaussian",
+                "denoise_sigma": 0.7,
+                "sharpen": True,
+                "sharpen_amount": 1.3,
+                "gamma_correction": 1.1,
+            },
+        },
+        {
+            "name": "Focus Enhancement",
+            "params": {
+                "equalize_method": "stretch",
+                "contrast_stretch_percentiles": (5, 95),
+                "color_preservation": "lab",
+                "color_preservation_strength": 0.95,
+                "denoise_type": "bilateral",
+                "denoise_sigma": 0.4,
+                "sharpen": True,
+                "sharpen_amount": 2.0,
+                "gamma_correction": 1.0,
+            },
+        },
+    ]
+
+    results = {}
+    best_method = None
+    best_score = -1.0
+
+    for method in methods:
+        name = method["name"]
+        params = method["params"]
+
+        if output_dir:
+            output_path = os.path.join(
+                output_dir, f"{name.replace(' ', '_').lower()}.jpg"
+            )
+        else:
+            output_path = None
+
+        try:
+            processed, metrics = process_image(
+                image_path,
+                output_path=output_path,
+                application_type=application_type,
+                calculate_advanced_metrics=calculate_advanced_metrics,
+                **params,
+            )
+
+            results[name] = {
+                "processed": processed,
+                "metrics": metrics,
+                "output_path": output_path,
+            }
+
+            if (
+                metrics
+                and "quality_score" in metrics
+                and metrics["quality_score"] > best_score
+            ):
+                best_score = metrics["quality_score"]
+                best_method = name
+
+        except Exception as e:
+            results[name] = {"error": str(e)}
+
+    if best_method:
+        results["best_method"] = {"name": best_method, "score": best_score}
+
+    return results
+
+
+def suggest_optimal_params(analysis_results: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Suggest optimal processing parameters based on batch analysis results.
+
+    Args:
+        analysis_results: Results from analyze_batch function
+
+    Returns:
+        Dictionary with suggested parameters
+    """
+    # Extract summary statistics
+    summary = analysis_results["summary"]
+
+    # Determine general characteristics of the batch
+    avg_brightness = summary["brightness"].get("avg", 0.5)
+    avg_contrast = summary["contrast"].get("avg", 0.3)
+    avg_noise = summary["noise_level"].get("avg", 0.03)
+    avg_edge_density = summary["edge_density"].get("avg", 0.05)
+
+    is_mostly_color = summary["color_images"] > (analysis_results["total_images"] / 2)
+
+    # Start with default parameters
+    params = {
+        "equalize_method": "stretch",
+        "contrast_stretch_percentiles": (5, 95),
+        "denoise_type": "gaussian",
+        "denoise_sigma": 0.8,
+        "sharpen": True,
+        "sharpen_amount": 1.2,
+        "gamma_correction": 1.0,
+        "color_preservation": "lab" if is_mostly_color else "none",
+        "color_preservation_strength": 0.8 if is_mostly_color else 0.0,
+    }
+
+    # Adjust based on average characteristics
+
+    # Brightness adjustment
+    if avg_brightness < 0.4:
+        params["gamma_correction"] = 0.85
+    elif avg_brightness > 0.7:
+        params["gamma_correction"] = 1.15
+
+    # Contrast adjustment
+    if avg_contrast < 0.15:
+        params["equalize_method"] = "clahe"
+        params["clip_limit"] = 0.03
+        params["clip_limit_kernel_size"] = 8
+    elif avg_contrast < 0.25:
+        params["contrast_stretch_percentiles"] = (2, 98)
+    else:
+        params["contrast_stretch_percentiles"] = (5, 95)
+
+    # Noise adjustment
+    if avg_noise > 0.06:
+        params["denoise_type"] = "bilateral" if avg_edge_density > 0.05 else "gaussian"
+        params["denoise_sigma"] = min(1.5, avg_noise * 15)
+    elif avg_noise > 0.03:
+        params["denoise_type"] = "gaussian"
+        params["denoise_sigma"] = min(1.0, avg_noise * 12)
+    else:
+        params["denoise_type"] = "gaussian"
+        params["denoise_sigma"] = 0.5
+
+    # Edge/sharpening adjustment
+    if avg_edge_density < 0.02:
+        params["sharpen"] = True
+        params["sharpen_amount"] = 1.8
+    elif avg_edge_density > 0.1:
+        params["sharpen"] = True
+        params["sharpen_amount"] = 0.9
+    else:
+        params["sharpen"] = True
+        params["sharpen_amount"] = 1.2
+
+    # Determine application type
+    if avg_edge_density > 0.1 and avg_contrast > 0.25:
+        application_type = "document"
+    elif is_mostly_color and avg_contrast > 0.2:
+        application_type = "photography"
+    else:
+        application_type = "general"
+
+    return {
+        "params": params,
+        "application_type": application_type,
+        "batch_summary": summary,
+    }
+
 
 __all__ = ["compare_processing_methods", "suggest_optimal_params"]
