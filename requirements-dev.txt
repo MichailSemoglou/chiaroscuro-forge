@@ -9,6 +9,7 @@ Install these packages for development and testing:
 pytest>=7.4.0
 pytest-cov>=4.1.0
 pytest-xdist>=3.3.0
+hypothesis>=6.0.0
 
 # Code Quality
 black>=23.7.0
@@ -26,3 +27,12 @@ types-setuptools>=68.0.0
 
 # Pre-commit hooks
 pre-commit>=3.3.0
+
+# REST API
+fastapi>=0.104.0
+uvicorn>=0.24.0
+
+# Optional GPU Acceleration (install as needed)
+# pyopencl>=2023.1.0  # OpenCL support (cross-platform)
+# cupy-cuda11x  # NVIDIA GPU support (CUDA 11.x)
+# cupy-cuda12x  # NVIDIA GPU support (CUDA 12.x)

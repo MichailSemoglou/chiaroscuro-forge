@@ -108,7 +108,7 @@ class TestResizeProperties:
     
     @given(image=valid_images(), scale=valid_scale_factors())
     @settings(deadline=None, max_examples=30)
-    def test_resize_preserves_range(self, image):
+    def test_resize_preserves_range(self, image, scale):
         """Resizing should preserve value range."""
         stage = ResizeStage()
         context = {'scale_factor': scale}
@@ -234,7 +234,7 @@ class TestPipelineProperties:
         pipeline.add_stage(ResizeStage())
         
         context = {'scale_factor': 1.0}
-        result = pipeline.execute(image, context)
+        result, _ = pipeline.process(image, context)
         
         assert result.shape[2] == image.shape[2]
     
@@ -247,8 +247,8 @@ class TestPipelineProperties:
         
         context = {'scale_factor': 1.0}
         
-        result1 = pipeline.execute(image.copy(), context.copy())
-        result2 = pipeline.execute(image.copy(), context.copy())
+        result1, _ = pipeline.process(image.copy(), context.copy())
+        result2, _ = pipeline.process(image.copy(), context.copy())
         
         np.testing.assert_array_equal(result1, result2)
 

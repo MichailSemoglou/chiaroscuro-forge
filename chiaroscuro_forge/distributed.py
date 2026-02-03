@@ -517,23 +517,18 @@ def create_queue(backend: str = 'local', **kwargs) -> TaskQueue:
     if backend == 'local':
         return LocalQueue(max_workers=kwargs.get('max_workers'))
     elif backend == 'redis':
-        # Import here to avoid requiring redis as dependency
-        try:
-            from chiaroscuro_forge.distributed_redis import RedisQueue
-            return RedisQueue(**kwargs)
-        except ImportError:
-            raise ImportError(
-                "Redis backend requires 'redis' and 'rq' packages. "
-                "Install with: pip install redis rq"
-            )
+        # Redis backend not yet implemented
+        raise NotImplementedError(
+            "Redis backend is not yet implemented. "
+            "Currently only 'local' backend is supported. "
+            "Future implementation will require: pip install redis rq"
+        )
     elif backend == 'celery':
-        try:
-            from chiaroscuro_forge.distributed_celery import CeleryQueue
-            return CeleryQueue(**kwargs)
-        except ImportError:
-            raise ImportError(
-                "Celery backend requires 'celery' package. "
-                "Install with: pip install celery[redis]"
-            )
+        # Celery backend not yet implemented
+        raise NotImplementedError(
+            "Celery backend is not yet implemented. "
+            "Currently only 'local' backend is supported. "
+            "Future implementation will require: pip install celery[redis]"
+        )
     else:
-        raise ValueError(f"Unknown backend: {backend}")
+        raise ValueError(f"Unknown backend: {backend}. Supported backends: 'local'")

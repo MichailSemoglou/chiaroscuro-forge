@@ -9,17 +9,26 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18200572.svg)](https://doi.org/10.5281/zenodo.18200572)
 
-An intelligent image enhancement tool inspired by Renaissance techniques. Features automatic parameter detection, advanced color preservation, quality metrics, and parallel batch processing. Perfect for photographers and developers seeking to transform ordinary images with artistic precision.
+An intelligent image enhancement tool inspired by Renaissance techniques. Features automatic parameter detection, advanced color preservation, quality metrics, parallel batch processing, GPU acceleration, REST API, and distributed processing. Perfect for photographers and developers seeking to transform ordinary images with artistic precision.
 
 ## Features
+
+### Core Processing
 
 - **Intelligent Enhancement**: Automatically analyzes image characteristics and applies optimal processing parameters
 - **Advanced Color Preservation**: Maintains color fidelity while enhancing contrast and details
 - **Multiple Enhancement Methods**: LAB, RGB, and ratio-based color processing modes
 - **Quality Metrics**: Calculates SSIM, PSNR, MS-SSIM, and other perceptual quality scores
-- **Batch Processing**: Process multiple images in parallel with detailed reporting
 - **Preset System**: Save and reuse customized enhancement settings
 - **Application Types**: Specialized processing for photography, documents, medical images, and art
+
+### Advanced Features (Phase 4)
+
+- **GPU Acceleration**: CUDA (NVIDIA), OpenCL (cross-platform), and Metal (Apple Silicon) support for compute-intensive operations
+- **REST API**: FastAPI-based HTTP API with authentication, rate limiting, and async job processing
+- **Distributed Processing**: Task queue system with Redis and Celery backend support (local queue included)
+- **Property-Based Testing**: Hypothesis framework integration for comprehensive edge case validation
+- **Batch Processing**: Process multiple images in parallel with detailed reporting
 
 ## Installation
 
@@ -29,6 +38,13 @@ An intelligent image enhancement tool inspired by Renaissance techniques. Featur
 - NumPy
 - SciPy
 - scikit-image
+
+### Optional Dependencies
+
+- **GPU Acceleration**: `pyopencl` (OpenCL), `cupy` (NVIDIA CUDA)
+- **REST API**: `fastapi`, `uvicorn`, `httpx`, `python-multipart`
+- **Distributed Processing**: `redis`, `celery` (for production deployments)
+- **Property-Based Testing**: `hypothesis` (for advanced testing)
 
 ### Install from PyPI
 
@@ -149,19 +165,7 @@ chiaroscuro-forge "photos/*.jpg" --output enhanced/ --batch --workers 8 --report
 
 You can use Chiaroscuro Forge directly in your Python code:
 
-### Get Image Statistics
-
-```python
-from chiaroscuro_forge import get_image_statistics
-
-stats = get_image_statistics("photo.jpg")
-print(f"Dimensions: {stats['dimensions']}")
-print(f"Brightness: {stats['brightness']:.2f}")
-print(f"Dynamic range: {stats['dynamic_range']:.2f}")
-print(f"Contrast ratio: {stats['contrast_ratio']:.2f}")
-```
-
-### Process an Image
+### Basic Image Processing
 
 ```python
 from chiaroscuro_forge import process_image
@@ -175,6 +179,18 @@ print(f"SSIM: {metrics['ssim']:.4f}")
 print(f"PSNR: {metrics['psnr']:.2f} dB")
 ```
 
+### Get Image Statistics
+
+```python
+from chiaroscuro_forge import get_image_statistics
+
+stats = get_image_statistics("photo.jpg")
+print(f"Dimensions: {stats['dimensions']}")
+print(f"Brightness: {stats['brightness']:.2f}")
+print(f"Dynamic range: {stats['dynamic_range']:.2f}")
+print(f"Contrast ratio: {stats['contrast_ratio']:.2f}")
+```
+
 ### Analyze Image Characteristics
 
 ```python
@@ -184,15 +200,76 @@ analysis = analyze_image_characteristics("photo.jpg")
 print(f"Suggested parameters: {analysis['suggested_params']}")
 ```
 
+### GPU Acceleration
+
+```python
+from chiaroscuro_forge.gpu import GPUContext, gpu_available
+
+if gpu_available():
+    with GPUContext() as gpu:
+        result = gpu.gaussian_blur(image, sigma=2.0)
+        edges = gpu.sobel_filter(image)
+```
+
+### REST API Usage
+
+Start the API server:
+
+```bash
+uvicorn chiaroscuro_forge.api:app --reload
+```
+
+Then use it from Python:
+
+```python
+import requests
+
+# Create API key
+response = requests.post(
+    "http://localhost:8000/api/v1/keys",
+    json={"name": "my-app", "rate_limit": 100}
+)
+api_key = response.json()["key"]
+
+# Process an image
+with open("image.jpg", "rb") as f:
+    response = requests.post(
+        "http://localhost:8000/api/v1/process",
+        headers={"X-API-Key": api_key},
+        files={"image": f},
+        data={"gamma": 1.5, "application_type": "photography"}
+    )
+job_id = response.json()["job_id"]
+```
+
+Visit http://localhost:8000/docs for interactive API documentation.
+
 ## Development
 
 The project is structured around core image processing functions with a focus on quality and customizability:
 
-- `get_image_statistics()`: Returns comprehensive image statistics (dimensions, intensity, histogram, dynamic range, contrast)
-- `analyze_image_characteristics()`: Extracts characteristics from images
-- `process_image()`: Main processing function with numerous customizable parameters
-- `compare_processing_methods()`: Compares different enhancement approaches
-- `batch_process_images()`: Handles processing of multiple images
+### Core Modules
+
+- `processing.py`: Main image processing pipeline with customizable parameters
+- `analysis.py`: Image analysis and automatic parameter detection
+- `metrics.py`: Quality metrics (SSIM, PSNR, MS-SSIM) calculation
+- `batch.py`: Parallel batch processing with progress tracking
+- `pipeline.py`: Clean pipeline pattern for stage-based processing
+
+### Advanced Modules (Phase 4)
+
+- `gpu.py`: GPU acceleration with CUDA, OpenCL, and Metal support
+- `api.py`: REST API with FastAPI, authentication, and rate limiting
+- `distributed.py`: Distributed task queue system with multiple backend support
+- `cache.py`: Intelligent caching system for performance optimization
+- `di.py`: Dependency injection container for flexible architecture
+
+### Testing
+
+- 415+ passing tests with 80%+ coverage
+- Property-based testing with Hypothesis
+- GPU and API integration tests
+- Comprehensive unit and integration test suites
 
 ## Contributing
 
