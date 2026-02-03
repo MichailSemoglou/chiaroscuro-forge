@@ -131,6 +131,14 @@ if not _import_successful:
             GPUInfo,
             benchmark_operation,
         )
+        from chiaroscuro_forge.distributed import (
+            TaskQueue,
+            LocalQueue,
+            DistributedBatchProcessor,
+            TaskStatus,
+            TaskResult,
+            create_queue,
+        )
         
         _import_successful = True
         
@@ -194,4 +202,11 @@ __all__ = [
     "GPUBackend",
     "GPUInfo",
     "benchmark_operation",
+    # Phase 4.2: Distributed processing
+    "TaskQueue",
+    "LocalQueue",
+    "DistributedBatchProcessor",
+    "TaskStatus",
+    "TaskResult",
+    "create_queue",
 ]

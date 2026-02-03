@@ -213,6 +213,13 @@ class TestModuleStructure(unittest.TestCase):
             'GPUBackend',
             'GPUInfo',
             'benchmark_operation',
+            # Phase 4.2: Distributed processing (added in v0.4.0)
+            'TaskQueue',
+            'LocalQueue',
+            'DistributedBatchProcessor',
+            'TaskStatus',
+            'TaskResult',
+            'create_queue',
         }
         
         self.assertEqual(set(chiaroscuro_forge.__all__), expected_exports,
