@@ -55,50 +55,60 @@ try:
     FASTAPI_AVAILABLE = True
 except ImportError:
     FASTAPI_AVAILABLE = False
+    BaseModel = None  # type: ignore
+    Field = None  # type: ignore
 
 from PIL import Image
 import numpy as np
 
 logger = logging.getLogger(__name__)
 
+# Only define API models if FastAPI is available
+if FASTAPI_AVAILABLE:
+    # ===== API Models =====
 
-# ===== API Models =====
-
-class ProcessingParams(BaseModel):
-    """Processing parameters for image enhancement."""
-    gamma: Optional[float] = Field(None, ge=0.1, le=3.0, description="Gamma correction")
-    scale_factor: Optional[float] = Field(None, gt=0, le=4.0, description="Scale factor")
-    denoise_sigma: Optional[float] = Field(None, ge=0, le=10.0, description="Denoise sigma")
-    sharpen_amount: Optional[float] = Field(None, ge=0, le=2.0, description="Sharpen amount")
-    equalize_method: Optional[str] = Field(None, description="Equalization method")
-    color_preservation: Optional[str] = Field(None, description="Color preservation method")
-    application_type: Optional[str] = Field("general", description="Application type")
-
-
-class JobStatus(str, Enum):
-    """Job processing status."""
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
+    class ProcessingParams(BaseModel):
+        """Processing parameters for image enhancement."""
+        gamma: Optional[float] = Field(None, ge=0.1, le=3.0, description="Gamma correction")
+        scale_factor: Optional[float] = Field(None, gt=0, le=4.0, description="Scale factor")
+        denoise_sigma: Optional[float] = Field(None, ge=0, le=10.0, description="Denoise sigma")
+        sharpen_amount: Optional[float] = Field(None, ge=0, le=2.0, description="Sharpen amount")
+        equalize_method: Optional[str] = Field(None, description="Equalization method")
+        color_preservation: Optional[str] = Field(None, description="Color preservation method")
+        application_type: Optional[str] = Field("general", description="Application type")
 
 
-class JobInfo(BaseModel):
-    """Job information response."""
-    job_id: str
-    status: JobStatus
-    created_at: datetime
-    completed_at: Optional[datetime] = None
-    progress: Optional[float] = Field(None, ge=0.0, le=1.0)
-    result_url: Optional[str] = None
-    error: Optional[str] = None
+    class JobStatus(str, Enum):
+        """Job processing status."""
+        PENDING = "pending"
+        PROCESSING = "processing"
+        COMPLETED = "completed"
+        FAILED = "failed"
 
 
-class APIResponse(BaseModel):
-    """Standard API response."""
-    success: bool
-    message: str
-    data: Optional[Dict[str, Any]] = None
+    class JobInfo(BaseModel):
+        """Job information response."""
+        job_id: str
+        status: JobStatus
+        created_at: datetime
+        completed_at: Optional[datetime] = None
+        progress: Optional[float] = Field(None, ge=0.0, le=1.0)
+        result_url: Optional[str] = None
+        error: Optional[str] = None
+
+
+    class APIResponse(BaseModel):
+        """Standard API response."""
+        success: bool
+        message: str
+        data: Optional[Dict[str, Any]] = None
+
+else:
+    # Stub classes when FastAPI is not available
+    ProcessingParams = None  # type: ignore
+    JobStatus = None  # type: ignore
+    JobInfo = None  # type: ignore
+    APIResponse = None  # type: ignore
 
 
 # ===== Authentication =====
@@ -186,46 +196,6 @@ class APIKeyManager:
             return True
 
 
-# Global API key manager
-api_key_manager = APIKeyManager()
-
-# API key header
-api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
-
-
-async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
-    """Verify API key from request header.
-    
-    Args:
-        api_key: API key from header
-        
-    Returns:
-        Validated API key
-        
-    Raises:
-        HTTPException: If key is invalid or rate limited
-    """
-    if not api_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing API key"
-        )
-    
-    if not api_key_manager.validate_key(api_key):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid API key"
-        )
-    
-    if not api_key_manager.check_rate_limit(api_key):
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Rate limit exceeded"
-        )
-    
-    return api_key
-
-
 # ===== Job Manager =====
 
 class JobManager:
@@ -248,7 +218,7 @@ class JobManager:
             job_id = f"job_{self._job_counter}_{int(time.time() * 1000)}"
             
             self._jobs[job_id] = {
-                'status': JobStatus.PENDING,
+                'status': "pending" if not FASTAPI_AVAILABLE else JobStatus.PENDING,
                 'created_at': datetime.now(),
                 'completed_at': None,
                 'progress': 0.0,
@@ -258,7 +228,7 @@ class JobManager:
             
             return job_id
     
-    def get_job(self, job_id: str) -> Optional[JobInfo]:
+    def get_job(self, job_id: str) -> Optional[Any]:
         """Get job information.
         
         Args:
@@ -268,7 +238,7 @@ class JobManager:
             JobInfo or None if not found
         """
         job = self._jobs.get(job_id)
-        if not job:
+        if not job or not FASTAPI_AVAILABLE:
             return None
         
         return JobInfo(
@@ -284,7 +254,7 @@ class JobManager:
     def update_job(
         self,
         job_id: str,
-        status: Optional[JobStatus] = None,
+        status: Optional[Any] = None,
         progress: Optional[float] = None,
         result: Optional[Any] = None,
         error: Optional[str] = None
@@ -313,12 +283,54 @@ class JobManager:
             if error is not None:
                 job['error'] = error
             
-            if status in (JobStatus.COMPLETED, JobStatus.FAILED):
+            if status in ("completed", "failed") or (FASTAPI_AVAILABLE and status in (JobStatus.COMPLETED, JobStatus.FAILED)):
                 job['completed_at'] = datetime.now()
 
 
-# Global job manager
+# Global managers (always available)
+api_key_manager = APIKeyManager()
 job_manager = JobManager()
+
+# FastAPI-specific components (only when available)
+if FASTAPI_AVAILABLE:
+    # API key header
+    api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+    async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
+        """Verify API key from request header.
+        
+        Args:
+            api_key: API key from header
+            
+        Returns:
+            Validated API key
+            
+        Raises:
+            HTTPException: If key is invalid or rate limited
+        """
+        if not api_key:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Missing API key"
+            )
+        
+        if not api_key_manager.validate_key(api_key):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid API key"
+            )
+        
+        if not api_key_manager.check_rate_limit(api_key):
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Rate limit exceeded"
+            )
+        
+        return api_key
+else:
+    api_key_header = None  # type: ignore
+    verify_api_key = None  # type: ignore
 
 
 # ===== FastAPI Application =====

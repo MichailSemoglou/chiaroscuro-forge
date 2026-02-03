@@ -75,16 +75,31 @@ from chiaroscuro_forge.distributed import (
     TaskResult,
     create_queue,
 )
-from chiaroscuro_forge.api import (
-    app,
-    api_key_manager,
-    job_manager,
-    run_server,
-    JobStatus as APIJobStatus,
-    JobInfo,
-    APIResponse,
-    ProcessingParams,
-)
+
+# Optional API module - only available if fastapi is installed
+try:
+    from chiaroscuro_forge.api import (
+        app,
+        api_key_manager,
+        job_manager,
+        run_server,
+        JobStatus as APIJobStatus,
+        JobInfo,
+        APIResponse,
+        ProcessingParams,
+    )
+    _api_available = True
+except ImportError:
+    _api_available = False
+    # Provide placeholder None values for optional API components
+    app = None
+    api_key_manager = None
+    job_manager = None
+    run_server = None
+    APIJobStatus = None
+    JobInfo = None
+    APIResponse = None
+    ProcessingParams = None
 
 __all__ = [
     "process_image",
