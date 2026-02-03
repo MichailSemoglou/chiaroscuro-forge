@@ -2,6 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/chiaroscuro-forge.svg)](https://pypi.org/project/chiaroscuro-forge/)
 [![PyPI downloads](https://img.shields.io/pypi/dm/chiaroscuro-forge.svg)](https://pypi.org/project/chiaroscuro-forge/)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/chiaroscuro-forge?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/chiaroscuro-forge)
 [![Python versions](https://img.shields.io/pypi/pyversions/chiaroscuro-forge.svg)](https://pypi.org/project/chiaroscuro-forge/)
 [![License](https://img.shields.io/pypi/l/chiaroscuro-forge.svg)](https://github.com/MichailSemoglou/chiaroscuro-forge/blob/main/LICENSE)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18200572.svg)](https://doi.org/10.5281/zenodo.18200572)
