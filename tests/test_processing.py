@@ -407,7 +407,8 @@ class TestProcessImageEdgeCases(unittest.TestCase):
     def tearDown(self):
         """Clean up."""
         if os.path.exists(self.temp_dir):
-            shutil.rmtree(self.temp_dir)
+            # On Windows, files may be locked - try with ignore_errors
+            shutil.rmtree(self.temp_dir, ignore_errors=True)
     
     def test_corrupted_image_file(self):
         """Test handling of corrupted image file."""
@@ -415,22 +416,16 @@ class TestProcessImageEdgeCases(unittest.TestCase):
         # Create file with valid PNG magic but invalid content
         with open(corrupt_path, 'wb') as f:
             f.write(b'\x89PNG\r\n\x1a\n' + b'NOT VALID PNG DATA')
-        # Ensure file handle is closed (important for Windows file locking)
         
-        try:
-            with self.assertRaises(ImageProcessingError) as ctx:  
-                process_image(corrupt_path)
-            # Either validation or loading will fail
-            error_msg = str(ctx.exception).lower()
-            self.assertTrue(
-                "failed to load" in error_msg or
-                "magic number" in error_msg or
-                "cannot" in error_msg
-            )
-        finally:
-            # Force garbage collection to release file handles on Windows
-            import gc
-            gc.collect()
+        with self.assertRaises(ImageProcessingError) as ctx:  
+            process_image(corrupt_path)
+        # Either validation or loading will fail
+        error_msg = str(ctx.exception).lower()
+        self.assertTrue(
+            "failed to load" in error_msg or
+            "magic number" in error_msg or
+            "cannot" in error_msg
+        )
     
     def test_empty_file(self):
         """Test handling of empty file."""

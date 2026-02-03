@@ -307,6 +307,13 @@ class TestCLI(unittest.TestCase):
 
             self.assertEqual(result, 0)
             self.assertTrue(os.path.exists(log_file))
+        
+        # Close log handlers to release file lock on Windows
+        import logging
+        logger = logging.getLogger("batch_processor")
+        for handler in logger.handlers:
+            handler.close()
+        logger.handlers = []
 
     def test_analyze_batch(self):
         """Test batch analysis."""

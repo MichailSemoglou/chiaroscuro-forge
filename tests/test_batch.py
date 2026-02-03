@@ -40,6 +40,11 @@ class TestSetupLogger(unittest.TestCase):
 
             self.assertEqual(logger.level, logging.DEBUG)
             self.assertEqual(len(logger.handlers), 2)  # Console + file handlers
+            
+            # Close handlers to release file lock on Windows
+            for handler in logger.handlers:
+                handler.close()
+            logger.handlers = []
 
     def test_logger_clears_existing_handlers(self):
         """Test that logger clears existing handlers."""
@@ -264,6 +269,13 @@ class TestBatchProcessImages(unittest.TestCase):
 
         self.assertEqual(results["successful"], 3)
         self.assertTrue(os.path.exists(log_file))
+        
+        # Close log handlers to release file lock on Windows
+        import logging
+        logger = logging.getLogger("batch_processor")
+        for handler in logger.handlers:
+            handler.close()
+        logger.handlers = []
 
     def test_batch_process_no_files_found(self):
         """Test error when no files match pattern."""
