@@ -375,8 +375,12 @@ if FASTAPI_AVAILABLE:
         if not api_key:
             return False
         env_key = os.environ.get("CHIAROSCURO_API_KEY")
+        if not env_key:
+            return False
         allow_bootstrap = os.environ.get("CHIAROSCURO_ALLOW_BOOTSTRAP", "false").lower() == "true"
-        return allow_bootstrap or (env_key and api_key == env_key)
+        if not allow_bootstrap:
+            return False
+        return secrets.compare_digest(api_key, env_key)
 
     async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
         if not api_key:
