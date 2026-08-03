@@ -28,7 +28,7 @@ pre-commit>=3.3.0
 
 # REST API
 fastapi>=0.104.0
-uvicorn>=0.24.0
+uvicorn>=0.52.0
 python-multipart>=0.0.31
 httpx>=0.25.0
 
