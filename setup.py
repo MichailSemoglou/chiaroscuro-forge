@@ -61,7 +61,7 @@ setup(
         "numpy>=1.22.0",
         "scipy>=1.7.0",
         "scikit-image>=0.20.0",
-        "Pillow>=10.0.0",
+        "Pillow>=10.4.0",
     ],
     extras_require={
         "dev": [

@@ -491,7 +491,7 @@ class LocalQueue(TaskQueue):
             except CancelledError:
                 with self._lock:
                     result = self.results.get(task_id)
-                    if result:
+                    if result and not self._is_terminal_status(result.status):
                         result.status = TaskStatus.CANCELLED
                         result.completed_at = datetime.now()
                 logger.info("Task %s cancelled", task_id)
@@ -509,7 +509,7 @@ class LocalQueue(TaskQueue):
             cancelled = self.futures[task_id].cancel()
             if cancelled:
                 result = self.results.get(task_id)
-                if result:
+                if result and not self._is_terminal_status(result.status):
                     result.status = TaskStatus.CANCELLED
                     result.completed_at = datetime.now()
             if cancelled:
