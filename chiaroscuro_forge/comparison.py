@@ -208,8 +208,6 @@ def compare_processing_methods(
 
     if best_method:
         results["best_method"] = {"name": best_method, "score": best_score}
-    else:
-        results["best_method"] = None
 
     return results
 

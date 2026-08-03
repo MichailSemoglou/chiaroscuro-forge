@@ -430,7 +430,9 @@ class LocalQueue(TaskQueue):
                         delay,
                     )
                     time.sleep(delay)
-                    result.retry_count = attempt + 1
+                    with self._lock:
+                        result = self.results[task.task_id]
+                        result.retry_count = attempt + 1
                 else:
                     with self._lock:
                         result = self.results[task.task_id]
@@ -501,16 +503,18 @@ class LocalQueue(TaskQueue):
             return self.results[task_id]
 
     def cancel_task(self, task_id: str) -> bool:
-        if task_id in self.futures:
+        with self._lock:
+            if task_id not in self.futures:
+                return False
             cancelled = self.futures[task_id].cancel()
             if cancelled:
                 result = self.results.get(task_id)
                 if result:
                     result.status = TaskStatus.CANCELLED
                     result.completed_at = datetime.now()
+            if cancelled:
                 logger.info("Task %s cancelled", task_id)
             return cancelled
-        return False
 
     def get_health(self) -> QueueHealth:
         health = QueueHealth(worker_count=self.worker_count)

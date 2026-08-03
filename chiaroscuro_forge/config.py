@@ -181,7 +181,9 @@ class ProcessingConfig:
         ProcessingConfig
         """
         overrides: dict = {}
-        if application_type == "document":
+        if application_type == "general":
+            pass
+        elif application_type == "document":
             overrides["equalize_method"] = "clahe"
             overrides["clip_limit"] = 0.02
             overrides["sharpen_amount"] = 1.8

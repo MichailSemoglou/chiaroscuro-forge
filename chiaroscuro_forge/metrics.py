@@ -8,6 +8,7 @@ and histogram-based comparisons.
 """
 
 import logging
+import threading
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -20,6 +21,7 @@ from .exceptions import ImageProcessingError
 from .validation import validate_array
 
 logger = logging.getLogger(__name__)
+_lpips_lock = threading.Lock()
 
 
 def ssim(img1: np.ndarray, img2: np.ndarray) -> float:
@@ -372,13 +374,13 @@ def lpips_similarity(
         import lpips
         import torch
 
-        if not hasattr(lpips_similarity, "_lpips_model"):
-            lpips_similarity._lpips_model = lpips.LPIPS(net="alex", verbose=False, normalize=True)
+        with _lpips_lock:
+            if not hasattr(lpips_similarity, "_lpips_model"):
+                lpips_similarity._lpips_model = lpips.LPIPS(net="alex", verbose=False)
+            loss_fn = lpips_similarity._lpips_model
 
-        loss_fn = lpips_similarity._lpips_model
-
-        t1 = torch.from_numpy(img_as_float(img1)).float()
-        t2 = torch.from_numpy(img_as_float(img2)).float()
+        t1 = torch.from_numpy(img_as_float(img1).clip(0, 1)).float()
+        t2 = torch.from_numpy(img_as_float(img2).clip(0, 1)).float()
 
         if t1.ndim == 2:
             t1 = t1.unsqueeze(0).unsqueeze(0)
