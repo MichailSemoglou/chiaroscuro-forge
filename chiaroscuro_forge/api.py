@@ -530,10 +530,27 @@ if FASTAPI_AVAILABLE:
     ):
         job_id = job_manager.create_job()
         try:
-            contents = await image.read()
             max_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
-            if len(contents) > max_bytes:
-                raise ValueError(f"Image file too large: {len(contents)} bytes")
+            content_length = image.headers.get("content-length")
+            if content_length is not None and int(content_length) > max_bytes:
+                raise ValueError(
+                    f"Image file too large: {content_length} bytes (max {max_bytes})"
+                )
+
+            chunks = []
+            total = 0
+            chunk_size = 1024 * 1024
+            while True:
+                chunk = await image.read(chunk_size)
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > max_bytes:
+                    raise ValueError(
+                        f"Image file too large: exceeds {max_bytes} bytes"
+                    )
+                chunks.append(chunk)
+            contents = b"".join(chunks)
 
             img = Image.open(BytesIO(contents))
             img.load()
