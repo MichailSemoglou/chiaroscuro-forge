@@ -224,7 +224,7 @@ def example_default_services():
     # Use injected services
     @inject('cache')
     def process_with_cache(data, cache=None):
-        cache_manager = cache  # This is the global cache manager
+        _ = cache  # This is the global cache manager
         # Use cache manager methods
         return f"Processing {data} with cache"
     

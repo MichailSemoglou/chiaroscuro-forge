@@ -12,10 +12,9 @@ import os
 import shutil
 import tempfile
 import unittest
-from unittest.mock import patch
 
 import numpy as np
-from skimage import img_as_float, img_as_ubyte, io, transform
+from skimage import img_as_float, img_as_ubyte, io
 
 from chiaroscuro_forge.exceptions import ImageProcessingError
 from chiaroscuro_forge.processing import process_image

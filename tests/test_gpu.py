@@ -1,12 +1,11 @@
 """Tests for GPU acceleration module."""
 
 import unittest
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import patch
 
 import numpy as np
 
 from chiaroscuro_forge.gpu import (
-    MAX_GPU_PIXELS,
     GPUBackend,
     GPUBenchmark,
     GPUCapabilities,
@@ -270,7 +269,7 @@ class TestGPUContextMemoryManagement(unittest.TestCase):
         for _ in range(3):
             with GPUContext() as gpu:
                 gpu_array = gpu.to_gpu(test_array)
-                result = gpu.to_cpu(gpu_array)
+                _ = gpu.to_cpu(gpu_array)
 
         # Should not raise memory errors
         self.assertTrue(True)

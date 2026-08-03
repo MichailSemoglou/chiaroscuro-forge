@@ -5,7 +5,7 @@ import threading
 import time
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import numpy as np
 from PIL import Image
@@ -15,9 +15,7 @@ from chiaroscuro_forge.distributed import (
     DistributedBatchProcessor,
     LocalQueue,
     QueueConfig,
-    QueueHealth,
     Task,
-    TaskQueue,
     TaskResult,
     TaskStatus,
     _backoff_delay,
@@ -53,7 +51,7 @@ class TestTaskResult(unittest.TestCase):
 
     def test_duration_calculation(self):
         """Test duration calculation."""
-        from datetime import datetime, timedelta
+        from datetime import datetime
 
         result = TaskResult(
             task_id="task_123",

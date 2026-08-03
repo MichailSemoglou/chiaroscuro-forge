@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from io import BytesIO
 from unittest.mock import patch
 
-import numpy as np
 import pytest
 from PIL import Image
 
@@ -256,7 +255,7 @@ class TestJobManager:
     def test_job_counts_reports_each_status(self):
         """Job counts should report the current status distribution."""
         manager = JobManager()
-        pending_job = manager.create_job()
+        manager.create_job()
         processing_job = manager.create_job()
         completed_job = manager.create_job()
         failed_job = manager.create_job()

@@ -4,8 +4,7 @@ import os
 import tempfile
 import time
 import unittest
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from PIL import Image
 
@@ -219,14 +218,14 @@ class TestCachedImageStats(unittest.TestCase):
             return {"brightness": 0.5}
 
         # First call
-        result1 = analyze(self.test_image)
+        analyze(self.test_image)
         self.assertEqual(call_count[0], 1)
 
         # Wait for TTL to expire
         time.sleep(0.15)
 
         # Should recompute
-        result2 = analyze(self.test_image)
+        analyze(self.test_image)
         self.assertEqual(call_count[0], 2)
 
     def test_cached_function_no_ttl(self):
@@ -306,7 +305,7 @@ class TestCachedPreset(unittest.TestCase):
         self.assertEqual(result1["param"], "value_test_preset")
 
         # Second call - cache hit
-        result2 = load("test_preset")
+        load("test_preset")
         self.assertEqual(call_count[0], 1)  # Not called again
 
         # Verify cache stats

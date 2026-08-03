@@ -86,11 +86,12 @@ def _process_single_image(
                 config=config,
             )
         else:
+            expanded_params = dict(params or {})
+            expanded_params["application_type"] = application_type
             _, metrics = process_image(
                 input_path,
                 output_path=output_path,
-                application_type=application_type,
-                **(params or {}),
+                **expanded_params,
             )
 
         return {"status": "success", "output_path": output_path, "metrics": metrics}

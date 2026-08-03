@@ -14,7 +14,7 @@ import os
 import shutil
 import tempfile
 import unittest
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import patch
 
 from chiaroscuro_forge.config import ProcessingConfig
 from chiaroscuro_forge.exceptions import ImageProcessingError

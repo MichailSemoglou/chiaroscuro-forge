@@ -1,0 +1,107 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag to publish
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Resolve release tag
+        id: release_info
+        env:
+          INPUT_TAG: ${{ github.event.inputs.release_tag || github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          tag="${INPUT_TAG:-}"
+          if [ -z "$tag" ]; then
+            echo "Release tag is required" >&2
+            exit 1
+          fi
+          normalized="${tag#v}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "normalized_tag=$normalized" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ steps.release_info.outputs.tag }}
+          persist-credentials: false
+
+      - name: Validate release tag
+        env:
+          RELEASE_TAG: ${{ steps.release_info.outputs.tag }}
+          NORMALIZED_TAG: ${{ steps.release_info.outputs.normalized_tag }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          tag = os.environ["RELEASE_TAG"]
+          normalized_tag = os.environ["NORMALIZED_TAG"]
+          init_path = Path("chiaroscuro_forge/__init__.py")
+          text = init_path.read_text(encoding="utf-8")
+          match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', text)
+          if not match:
+              raise SystemExit("Unable to determine package version from chiaroscuro_forge/__init__.py")
+
+          package_version = match.group(1)
+          if normalized_tag != package_version:
+              raise SystemExit(
+                  f"Release tag {tag} normalized to {normalized_tag} does not match package version {package_version}"
+              )
+
+          print(f"Validated release tag {tag} against package version {package_version}")
+          PY
+
+      - name: Set up Python
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # v4.9.1
+        with:
+          python-version: "3.13"
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build
+
+      - name: Build distributions
+        run: python -m build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@68e62d4871ad9d14a9d55f114e6ac71f0b408ec0 # v1.8.14
+        with:
+          packages-dir: dist/

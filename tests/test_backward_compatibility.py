@@ -5,8 +5,6 @@ These tests ensure that the gradual migration maintains 100% backward
 compatibility with existing code using the package.
 """
 
-import os
-import sys
 import unittest
 
 

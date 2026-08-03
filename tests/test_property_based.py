@@ -9,7 +9,6 @@ They will be skipped if hypothesis is not available.
 
 import numpy as np
 import pytest
-from PIL import Image
 
 # Check if Hypothesis is available
 try:
@@ -51,13 +50,31 @@ try:
 
 except ImportError:
     HYPOTHESIS_AVAILABLE = False
-    # Dummy values for when Hypothesis is not installed
-    given = lambda *args, **kwargs: lambda f: f
-    settings = lambda *args, **kwargs: lambda f: f
-    assume = lambda *args: None
-    valid_images = lambda *args, **kwargs: None
-    valid_gamma_values = lambda *args, **kwargs: None
-    valid_scale_factors = lambda *args, **kwargs: None
+
+    def given(*args, **kwargs):
+        def decorator(func):
+            return func
+
+        return decorator
+
+    def settings(*args, **kwargs):
+        def decorator(func):
+            return func
+
+        return decorator
+
+    def assume(*args):
+        return None
+
+    def valid_images(*args, **kwargs):
+        return None
+
+    def valid_gamma_values(*args, **kwargs):
+        return None
+
+    def valid_scale_factors(*args, **kwargs):
+        return None
+
 
 from chiaroscuro_forge.metrics import (
     ms_ssim,
@@ -69,7 +86,6 @@ from chiaroscuro_forge.pipeline import (
     ImageProcessingPipeline,
     ResizeStage,
 )
-from chiaroscuro_forge.processing import process_image
 
 pytestmark = pytest.mark.skipif(not HYPOTHESIS_AVAILABLE, reason="Hypothesis not installed")
 

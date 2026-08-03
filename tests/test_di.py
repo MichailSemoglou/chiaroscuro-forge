@@ -5,7 +5,7 @@ Comprehensive tests demonstrating DI patterns and ensuring container functionali
 """
 
 import unittest
-from unittest.mock import MagicMock, Mock
+from unittest.mock import Mock
 
 from chiaroscuro_forge.di import (
     ExampleService,
@@ -334,7 +334,7 @@ class TestExampleService(unittest.TestCase):
         config = {"use_cache": True}
 
         service = ExampleService(cache=cache, config=config)
-        result = service.process("test_data")
+        service.process("test_data")
 
         cache.get.assert_called_once_with("test_data")
         cache.set.assert_called_once()
