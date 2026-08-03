@@ -533,9 +533,7 @@ if FASTAPI_AVAILABLE:
             max_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
             content_length = image.headers.get("content-length")
             if content_length is not None and int(content_length) > max_bytes:
-                raise ValueError(
-                    f"Image file too large: {content_length} bytes (max {max_bytes})"
-                )
+                raise ValueError(f"Image file too large: {content_length} bytes (max {max_bytes})")
 
             chunks = []
             total = 0
@@ -546,9 +544,7 @@ if FASTAPI_AVAILABLE:
                     break
                 total += len(chunk)
                 if total > max_bytes:
-                    raise ValueError(
-                        f"Image file too large: exceeds {max_bytes} bytes"
-                    )
+                    raise ValueError(f"Image file too large: exceeds {max_bytes} bytes")
                 chunks.append(chunk)
             contents = b"".join(chunks)
 

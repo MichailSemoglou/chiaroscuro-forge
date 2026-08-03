@@ -255,9 +255,7 @@ def batch_process_images(
                         )
                     else:
                         results["successful"] += 1
-                        logger.info(
-                            "Successfully processed: %s", os.path.basename(input_path)
-                        )
+                        logger.info("Successfully processed: %s", os.path.basename(input_path))
                 except Exception as e:
                     logger.error(
                         "Error processing %s: %s", os.path.basename(input_path), type(e).__name__
