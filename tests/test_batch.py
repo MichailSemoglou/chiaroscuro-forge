@@ -198,6 +198,19 @@ class TestBatchProcessImages(unittest.TestCase):
 
         self.assertEqual(results["successful"], 3)
 
+    def test_batch_process_with_new_preset(self):
+        """Regression test for preset-based application_type merging."""
+        pattern = os.path.join(self.input_dir, "*.jpg")
+        results = batch_process_images(
+            pattern,
+            self.output_dir,
+            preset_name="new_preset",
+            n_workers=1,
+            generate_report=False,
+        )
+
+        self.assertEqual(results["successful"], 3)
+
     def test_batch_process_skip_existing(self):
         """Test skipping existing files in batch processing."""
         pattern = os.path.join(self.input_dir, "*.jpg")
