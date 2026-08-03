@@ -316,6 +316,7 @@ class TestCachedPreset(unittest.TestCase):
 
     def test_cached_preset_returns_copy(self):
         """Test that cached presets return copies to prevent mutations."""
+
         @cached_preset()
         def load(preset_name):
             return {"param": 1}
@@ -402,6 +403,25 @@ class TestCacheInvalidation(unittest.TestCase):
         """Test invalidating cache for nonexistent file."""
         # Should not raise error
         invalidate_stats_cache("nonexistent.jpg")
+
+    def test_cached_image_stats_propagates_unrelated_cache_key_errors(self):
+        """Unrelated cache-key failures should bubble up instead of being swallowed."""
+        cache = CacheManager()
+        call_count = [0]
+
+        @cached_image_stats(ttl=None)
+        def analyze(image_path):
+            call_count[0] += 1
+            return {"result": image_path}
+
+        with patch("chiaroscuro_forge.cache.get_cache_manager", return_value=cache):
+            with patch(
+                "chiaroscuro_forge.cache.get_file_cache_key", side_effect=RuntimeError("boom")
+            ):
+                with self.assertRaises(RuntimeError):
+                    analyze("file1")
+
+        self.assertEqual(call_count[0], 0)
 
 
 class TestCacheEviction(unittest.TestCase):

@@ -40,7 +40,7 @@ class TestSetupLogger(unittest.TestCase):
 
             self.assertEqual(logger.level, logging.DEBUG)
             self.assertEqual(len(logger.handlers), 2)  # Console + file handlers
-            
+
             # Close handlers to release file lock on Windows
             for handler in logger.handlers:
                 handler.close()
@@ -73,9 +73,7 @@ class TestProcessSingleImage(unittest.TestCase):
 
     def test_process_single_image_success(self):
         """Test successful single image processing."""
-        result = _process_single_image(
-            self.input_path, self.output_path, {}, "general"
-        )
+        result = _process_single_image(self.input_path, self.output_path, {}, "general")
 
         self.assertEqual(result["status"], "success")
         self.assertEqual(result["output_path"], self.output_path)
@@ -96,33 +94,25 @@ class TestProcessSingleImage(unittest.TestCase):
     def test_process_single_image_with_params(self):
         """Test single image processing with custom parameters."""
         params = {"denoise_sigma": 2.0, "sharpen_amount": 2.0}
-        result = _process_single_image(
-            self.input_path, self.output_path, params, "photography"
-        )
+        result = _process_single_image(self.input_path, self.output_path, params, "photography")
 
         self.assertEqual(result["status"], "success")
 
     def test_process_single_image_error_handling(self):
         """Test error handling in single image processing."""
-        with self.assertRaises(Exception):
-            _process_single_image(
-                "nonexistent.jpg", self.output_path, {}, "general"
-            )
+        with self.assertRaises(ImageProcessingError):
+            _process_single_image("nonexistent.jpg", self.output_path, {}, "general")
 
     def test_process_single_image_wrapper_success(self):
         """Test wrapper function with successful processing."""
-        result = _process_single_image_wrapper(
-            self.input_path, self.output_path, {}, "general"
-        )
+        result = _process_single_image_wrapper(self.input_path, self.output_path, {}, "general")
 
         self.assertEqual(result["status"], "success")
         self.assertNotIn("error", result)
 
     def test_process_single_image_wrapper_error(self):
         """Test wrapper function with error."""
-        result = _process_single_image_wrapper(
-            "nonexistent.jpg", self.output_path, {}, "general"
-        )
+        result = _process_single_image_wrapper("nonexistent.jpg", self.output_path, {}, "general")
 
         self.assertIn("error", result)
         self.assertIsInstance(result["error"], str)
@@ -269,9 +259,10 @@ class TestBatchProcessImages(unittest.TestCase):
 
         self.assertEqual(results["successful"], 3)
         self.assertTrue(os.path.exists(log_file))
-        
+
         # Close log handlers to release file lock on Windows
         import logging
+
         logger = logging.getLogger("batch_processor")
         for handler in logger.handlers:
             handler.close()
