@@ -339,7 +339,7 @@ class JobManager:
                 for jid, j in self._jobs.items()
                 if j["completed_at"] is not None
                 and j["completed_at"] < cutoff
-                and j["status"] in (JobStatus.COMPLETED, JobStatus.FAILED, "completed", "failed")
+                and j["status"] in ("completed", "failed")
             ]
             for jid in stale:
                 del self._jobs[jid]
