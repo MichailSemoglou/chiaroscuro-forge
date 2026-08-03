@@ -10,6 +10,10 @@ authors:
     orcid: "https://orcid.org/0009-0003-3268-5657"
 repository-code: "https://github.com/MichailSemoglou/chiaroscuro-forge"
 url: "https://github.com/MichailSemoglou/chiaroscuro-forge"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.18200571"
+    description: "Concept DOI, represents all versions of Chiaroscuro Forge"
 license: MIT
 keywords:
   - image processing
