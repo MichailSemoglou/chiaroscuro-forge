@@ -170,7 +170,7 @@ def batch_process_images(
     for input_path in input_files:
         filename = os.path.basename(input_path)
         base_name, ext = os.path.splitext(filename)
-        output_path = os.path.join(output_dir, f"{base_name}_processed{ext}")
+        output_path = os.path.join(safe_output, f"{base_name}_processed{ext}")
 
         if skip_existing and os.path.exists(output_path):
             logger.info(f"Skipping existing file: {output_path}")
