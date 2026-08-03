@@ -77,7 +77,7 @@ def validate_array(
     max_dim = max_dimension or MAX_DIMENSION
 
     total_pixels = arr.shape[0] * arr.shape[1] if arr.ndim >= 2 else arr.size
-    if total_pixels > max_pix:
+    if total_pixels > max_pix or arr.size > max_pix * 4:
         raise ImageProcessingError(
             f"{name} too large: {total_pixels:,} pixels "
             f"(max: {max_pix:,} pixels). Potential memory bomb attack."

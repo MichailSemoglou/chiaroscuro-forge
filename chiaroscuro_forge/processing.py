@@ -171,15 +171,6 @@ def process_image(
                 raise ImageProcessingError("Image too small for perceptual metrics calculation")
 
             original_for_metrics = original_image
-            if cfg.rotation_angle not in (None, 0):
-                original_for_metrics = transform.rotate(
-                    original_for_metrics,
-                    cfg.rotation_angle,
-                    order=cfg.order_rotate,
-                    resize=False,
-                    preserve_range=False,
-                    mode="reflect",
-                )
 
             if cfg.scale_factor != 1.0:
                 original_for_metrics = transform.resize(

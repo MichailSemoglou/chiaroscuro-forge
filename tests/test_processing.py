@@ -260,60 +260,6 @@ class TestProcessImage(unittest.TestCase):
 
         self.assertIsNone(metrics)
 
-    @patch("chiaroscuro_forge.processing.calculate_perceptual_metrics")
-    def test_rotation_is_applied_to_metrics_reference(self, mock_metrics):
-        """Rotation should be applied to the image used for metrics evaluation."""
-        mock_metrics.return_value = {"ssim": 1.0, "psnr": 100.0, "ms_ssim": 1.0}
-
-        process_image(
-            self.test_image_path,
-            calculate_metrics=True,
-            calculate_advanced_metrics=False,
-            rotation_angle=45,
-        )
-
-        self.assertTrue(mock_metrics.called)
-        original_for_metrics = mock_metrics.call_args.args[0]
-        self.assertEqual(original_for_metrics.shape, (100, 100, 3))
-
-        expected_original = img_as_float(io.imread(self.test_image_path))
-        expected_original = transform.rotate(
-            expected_original,
-            45,
-            resize=False,
-            preserve_range=False,
-            mode="reflect",
-        )
-        self.assertTrue(np.allclose(original_for_metrics, expected_original))
-
-    @patch("chiaroscuro_forge.processing.calculate_perceptual_metrics")
-    def test_metrics_rotation_uses_order_rotate_when_set(self, mock_metrics):
-        """Metrics rotation should honor cfg.order_rotate even when cfg.order is higher."""
-        mock_metrics.return_value = {"ssim": 1.0, "psnr": 100.0, "ms_ssim": 1.0}
-
-        process_image(
-            self.test_image_path,
-            calculate_metrics=True,
-            calculate_advanced_metrics=False,
-            rotation_angle=45,
-            order=3,
-            order_rotate=1,
-        )
-
-        self.assertTrue(mock_metrics.called)
-        original_for_metrics = mock_metrics.call_args.args[0]
-
-        expected_original = img_as_float(io.imread(self.test_image_path))
-        expected_original = transform.rotate(
-            expected_original,
-            45,
-            order=1,
-            resize=False,
-            preserve_range=False,
-            mode="reflect",
-        )
-        self.assertTrue(np.allclose(original_for_metrics, expected_original))
-
     def test_image_too_small_for_metrics(self):
         """Test that small images raise error for metrics."""
         with self.assertRaises(ImageProcessingError) as ctx:

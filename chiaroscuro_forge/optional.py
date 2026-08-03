@@ -59,7 +59,7 @@ def optional_import(
     try:
         module = importlib.import_module(package)
         return module
-    except Exception:
+    except (ImportError, ModuleNotFoundError):
         msg = f"{package} is not installed"
         if feature:
             msg = f"{msg}. {feature} is unavailable"
@@ -84,7 +84,7 @@ def is_available(*dependencies: str) -> bool:
     for dep in dependencies:
         try:
             importlib.import_module(dep)
-        except Exception:
+        except (ImportError, ModuleNotFoundError):
             return False
     return True
 
