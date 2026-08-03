@@ -21,7 +21,7 @@ def analyze_image_characteristics(image_path: str) -> Dict[str, Any]:
 
     Examines color saturation, brightness, contrast, noise level, edge density,
     and texture to automatically determine appropriate enhancement settings.
-    
+
     Results are cached for 1 hour to improve performance on repeated analyses.
 
     Parameters
@@ -56,6 +56,8 @@ def analyze_image_characteristics(image_path: str) -> Dict[str, Any]:
         is_color = image.ndim == 3 and image.shape[2] >= 3
 
         if is_color:
+            if image.shape[2] > 3:
+                image = image[:, :, :3]
             lab_image = color.rgb2lab(image)
 
             luminance = lab_image[:, :, 0]
@@ -95,9 +97,7 @@ def analyze_image_characteristics(image_path: str) -> Dict[str, Any]:
         except Exception:
             if is_color:
                 blue_channel = image[:, :, 2]
-                noise_level = np.std(
-                    blue_channel - filters.gaussian(blue_channel, sigma=1)
-                )
+                noise_level = np.std(blue_channel - filters.gaussian(blue_channel, sigma=1))
             else:
                 noise_level = np.std(image - filters.gaussian(image, sigma=1))
 
@@ -129,9 +129,7 @@ def analyze_image_characteristics(image_path: str) -> Dict[str, Any]:
         suggested_params = {}
 
         if noise_level > 0.05:
-            suggested_params["denoise_type"] = (
-                "bilateral" if edge_density > 0.05 else "gaussian"
-            )
+            suggested_params["denoise_type"] = "bilateral" if edge_density > 0.05 else "gaussian"
             suggested_params["denoise_sigma"] = min(1.5, noise_level * 15)
         else:
             suggested_params["denoise_type"] = "gaussian"
@@ -144,9 +142,11 @@ def analyze_image_characteristics(image_path: str) -> Dict[str, Any]:
                 suggested_params["clip_limit_kernel_size"] = 8
             else:
                 suggested_params["equalize_method"] = "stretch"
+                lower = max(1, int(contrast * 100))
+                upper = min(99, 100 - int(contrast * 100))
                 suggested_params["contrast_stretch_percentiles"] = (
-                    max(1, 10 - int(contrast * 100)),
-                    min(99, 90 + int(contrast * 100)),
+                    lower,
+                    max(lower + 1, upper),
                 )
         else:
             suggested_params["equalize_method"] = "stretch"
@@ -254,16 +254,24 @@ def get_image_statistics(image: Union[str, np.ndarray]) -> Dict[str, Any]:
     # Determine if color or grayscale
     is_color = img_float.ndim == 3 and img_float.shape[2] >= 3
 
-    # Calculate dimensions
     if is_color:
         height, width, channels = img_float.shape
+        if channels > 3:
+            img_float = img_float[:, :, :3]
+            channels = 3
     else:
         height, width = img_float.shape
         channels = 1
 
     # Flatten for statistics (use luminance for color images)
     if is_color:
-        luminance = 0.2126 * img_float[:, :, 0] + 0.7152 * img_float[:, :, 1] + 0.0722 * img_float[:, :, 2]
+        from .constants import LUMINANCE_R, LUMINANCE_G, LUMINANCE_B
+
+        luminance = (
+            LUMINANCE_R * img_float[:, :, 0]
+            + LUMINANCE_G * img_float[:, :, 1]
+            + LUMINANCE_B * img_float[:, :, 2]
+        )
         flat = luminance.flatten()
     else:
         flat = img_float.flatten()

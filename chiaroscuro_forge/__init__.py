@@ -16,7 +16,7 @@ Example:
     Basic usage for image enhancement::
 
         from chiaroscuro_forge import process_image
-        
+
         processed, metrics = process_image(
             "input.jpg",
             output_path="enhanced.jpg",
@@ -28,7 +28,7 @@ For more examples, see the documentation at:
 https://github.com/MichailSemoglou/chiaroscuro-forge
 """
 
-__version__ = "1.0.1"
+__version__ = "2.0.0"
 __author__ = "Michail Semoglou"
 __email__ = "m.semoglou@tongji.edu.cn"
 __license__ = "MIT"
@@ -43,6 +43,7 @@ from chiaroscuro_forge.batch import batch_process_images, analyze_batch
 from chiaroscuro_forge.comparison import compare_processing_methods
 from chiaroscuro_forge.presets import save_preset, load_preset, list_presets
 from chiaroscuro_forge.exceptions import ImageProcessingError
+from chiaroscuro_forge.config import ProcessingConfig
 from chiaroscuro_forge.cache import (
     get_cache_manager,
     invalidate_preset_cache,
@@ -66,6 +67,7 @@ from chiaroscuro_forge.gpu import (
     GPUBackend,
     GPUInfo,
     benchmark_operation,
+    safe_gpu,
 )
 from chiaroscuro_forge.distributed import (
     TaskQueue,
@@ -73,6 +75,8 @@ from chiaroscuro_forge.distributed import (
     DistributedBatchProcessor,
     TaskStatus,
     TaskResult,
+    QueueConfig,
+    QueueHealth,
     create_queue,
 )
 
@@ -88,6 +92,7 @@ try:
         APIResponse,
         ProcessingParams,
     )
+
     _api_available = True
 except ImportError:
     _api_available = False
@@ -103,6 +108,7 @@ except ImportError:
 
 __all__ = [
     "process_image",
+    "ProcessingConfig",
     "analyze_image_characteristics",
     "get_image_statistics",
     "batch_process_images",
@@ -132,12 +138,15 @@ __all__ = [
     "GPUBackend",
     "GPUInfo",
     "benchmark_operation",
+    "safe_gpu",
     # Phase 4.2: Distributed processing
     "TaskQueue",
     "LocalQueue",
     "DistributedBatchProcessor",
     "TaskStatus",
     "TaskResult",
+    "QueueConfig",
+    "QueueHealth",
     "create_queue",
     # Phase 4.3: REST API
     "app",

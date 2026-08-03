@@ -177,7 +177,7 @@ VALID_EQUALIZE_METHODS = ["standard", "clahe", "stretch", "adaptive_gamma"]
 VALID_COLOR_METHODS = ["none", "lab", "rgb", "ratio"]
 """List of valid color preservation methods"""
 
-VALID_HISTOGRAM_METHODS = ["correlation", "chi-square", "intersection", "kl_divergence"]
+VALID_HISTOGRAM_METHODS = ["correlation", "chi_square", "intersection", "bhattacharyya"]
 """List of valid histogram similarity methods"""
 
 VALID_FEATURE_METHODS = ["hog", "orb", "canny"]
@@ -213,13 +213,16 @@ MAX_IMAGE_PIXELS = 100_000_000
 MAX_DIMENSION = 32768
 """Maximum allowed single dimension in pixels (default: 32768)"""
 
-ALLOWED_EXTENSIONS = {
-    '.jpg', '.jpeg', '.png', '.tif', '.tiff', '.bmp', '.gif', '.webp'
-}
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".gif", ".webp"}
 """Set of allowed image file extensions"""
 
 ALLOWED_MIME_TYPES = {
-    'image/jpeg', 'image/png', 'image/tiff', 'image/bmp', 'image/gif', 'image/webp'
+    "image/jpeg",
+    "image/png",
+    "image/tiff",
+    "image/bmp",
+    "image/gif",
+    "image/webp",
 }
 """Set of allowed MIME types for images"""
 
@@ -228,8 +231,8 @@ MAX_PATH_LENGTH = 4096
 """Maximum allowed path length"""
 
 DENIED_PATH_PATTERNS = [
-    '..',  # Parent directory traversal
-    '~',   # Home directory expansion
-    '\x00',  # Null byte injection
+    "..",  # Parent directory traversal
+    "~",  # Home directory expansion
+    "\x00",  # Null byte injection
 ]
 """Patterns that indicate potential path traversal attacks"""
