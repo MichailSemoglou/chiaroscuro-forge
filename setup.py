@@ -56,7 +56,7 @@ setup(
         "Topic :: Scientific/Engineering :: Image Processing",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    python_requires=">=3.10",
+    python_requires=">=3.9",
     install_requires=[
         "numpy>=1.22.0",
         "scipy>=1.7.0",
