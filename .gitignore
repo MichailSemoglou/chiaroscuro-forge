@@ -177,6 +177,16 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+# Kilo
+kilo.json
+.kimi/instructions.md
+
+# GitHub
+.github/instructions.md
+
+# Project references
+REFERENCES.md
+
 # Images (local working files)
 *.png
 *.jpg
@@ -192,3 +202,7 @@ cython_debug/
 *.psd
 *.xcf
 *.ai
+
+AGENTS.md
+ROADMAP.md
+REFERENCES.md
