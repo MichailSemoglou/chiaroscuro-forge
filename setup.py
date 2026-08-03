@@ -30,6 +30,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/MichailSemoglou/chiaroscuro-forge",
     packages=find_packages(),
+    package_data={"chiaroscuro_forge": ["presets/*.json"]},
     py_modules=["chiaroscuro_forge"] if not find_packages() else None,
     license="MIT",
     project_urls={
