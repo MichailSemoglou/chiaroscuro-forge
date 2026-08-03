@@ -5,16 +5,18 @@ Comprehensive tests for memory-efficient large image processing using tiles.
 """
 
 import unittest
+
 import numpy as np
+
+from chiaroscuro_forge.exceptions import ImageProcessingError
 from chiaroscuro_forge.tiling import (
+    blend_overlap,
     calculate_tile_grid,
     extract_tile,
-    blend_overlap,
-    stitch_tiles,
     process_image_tiled,
     should_use_tiling,
+    stitch_tiles,
 )
-from chiaroscuro_forge.exceptions import ImageProcessingError
 
 
 class TestCalculateTileGrid(unittest.TestCase):

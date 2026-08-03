@@ -1,11 +1,12 @@
 """Tests for the REST API module."""
 
-import pytest
 from datetime import datetime, timedelta
 from io import BytesIO
 from unittest.mock import patch
-from PIL import Image
+
 import numpy as np
+import pytest
+from PIL import Image
 
 from chiaroscuro_forge.api import _build_processing_config_from_params
 from chiaroscuro_forge.constants import MAX_FILE_SIZE_MB
@@ -13,16 +14,17 @@ from chiaroscuro_forge.constants import MAX_FILE_SIZE_MB
 # Check if FastAPI is available
 try:
     from fastapi.testclient import TestClient
+
     from chiaroscuro_forge.api import (
-        app,
-        api_key_manager,
-        job_manager,
-        JobStatus,
-        JobInfo,
-        APIResponse,
         APIKeyManager,
+        APIResponse,
+        JobInfo,
         JobManager,
+        JobStatus,
         ProcessingParams,
+        api_key_manager,
+        app,
+        job_manager,
     )
 
     FASTAPI_AVAILABLE = app is not None

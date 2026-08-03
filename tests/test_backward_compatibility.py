@@ -5,9 +5,9 @@ These tests ensure that the gradual migration maintains 100% backward
 compatibility with existing code using the package.
 """
 
-import unittest
-import sys
 import os
+import sys
+import unittest
 
 
 class TestBackwardCompatibility(unittest.TestCase):
@@ -17,16 +17,16 @@ class TestBackwardCompatibility(unittest.TestCase):
         """Test importing from main package (most common usage)."""
         try:
             from chiaroscuro_forge import (
-                process_image,
-                analyze_image_characteristics,
-                get_image_statistics,
-                batch_process_images,
-                analyze_batch,
-                compare_processing_methods,
-                save_preset,
-                load_preset,
-                list_presets,
                 ImageProcessingError,
+                analyze_batch,
+                analyze_image_characteristics,
+                batch_process_images,
+                compare_processing_methods,
+                get_image_statistics,
+                list_presets,
+                load_preset,
+                process_image,
+                save_preset,
             )
 
             # Verify functions are callable
@@ -47,15 +47,15 @@ class TestBackwardCompatibility(unittest.TestCase):
     def test_module_specific_imports(self):
         """Test importing from specific modules (new modular structure)."""
         try:
-            from chiaroscuro_forge.processing import process_image
             from chiaroscuro_forge.analysis import (
                 analyze_image_characteristics,
                 get_image_statistics,
             )
-            from chiaroscuro_forge.batch import batch_process_images, analyze_batch
+            from chiaroscuro_forge.batch import analyze_batch, batch_process_images
             from chiaroscuro_forge.comparison import compare_processing_methods
-            from chiaroscuro_forge.presets import save_preset, load_preset, list_presets
             from chiaroscuro_forge.exceptions import ImageProcessingError
+            from chiaroscuro_forge.presets import list_presets, load_preset, save_preset
+            from chiaroscuro_forge.processing import process_image
 
             # Verify functions are callable
             self.assertTrue(callable(process_image))
@@ -131,8 +131,8 @@ class TestBackwardCompatibility(unittest.TestCase):
         try:
             from chiaroscuro_forge.constants import (
                 DEFAULT_WIN_SIZE,
-                VALID_APP_TYPES,
                 QUALITY_WEIGHTS,
+                VALID_APP_TYPES,
             )
 
             self.assertIsInstance(DEFAULT_WIN_SIZE, int)

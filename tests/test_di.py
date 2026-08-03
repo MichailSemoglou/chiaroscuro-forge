@@ -5,15 +5,16 @@ Comprehensive tests demonstrating DI patterns and ensuring container functionali
 """
 
 import unittest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import MagicMock, Mock
+
 from chiaroscuro_forge.di import (
+    ExampleService,
     ServiceContainer,
     ServiceNotFoundError,
     get_container,
-    reset_container,
     inject,
+    reset_container,
     setup_default_services,
-    ExampleService,
 )
 
 

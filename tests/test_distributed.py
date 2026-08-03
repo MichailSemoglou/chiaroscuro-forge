@@ -1,26 +1,27 @@
 """Tests for distributed processing module."""
 
-import threading
-import unittest
-import time
 import tempfile
+import threading
+import time
+import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
+
 import numpy as np
 from PIL import Image
 
 from chiaroscuro_forge.distributed import (
-    TaskStatus,
-    TaskResult,
-    Task,
-    TaskQueue,
+    MAX_BACKOFF_DELAY,
+    DistributedBatchProcessor,
+    LocalQueue,
     QueueConfig,
     QueueHealth,
-    LocalQueue,
-    DistributedBatchProcessor,
-    create_queue,
-    MAX_BACKOFF_DELAY,
+    Task,
+    TaskQueue,
+    TaskResult,
+    TaskStatus,
     _backoff_delay,
+    create_queue,
 )
 
 

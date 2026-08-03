@@ -8,17 +8,17 @@ Tests end-to-end image processing workflows including:
 
 """
 
-import unittest
-import tempfile
 import os
 import shutil
+import tempfile
+import unittest
 from unittest.mock import patch
-import numpy as np
-from skimage import io, img_as_ubyte, img_as_float, transform
 
-from chiaroscuro_forge.processing import process_image
+import numpy as np
+from skimage import img_as_float, img_as_ubyte, io, transform
 
 from chiaroscuro_forge.exceptions import ImageProcessingError
+from chiaroscuro_forge.processing import process_image
 
 
 class TestProcessImage(unittest.TestCase):

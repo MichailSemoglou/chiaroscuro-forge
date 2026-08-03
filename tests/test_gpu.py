@@ -1,20 +1,22 @@
 """Tests for GPU acceleration module."""
 
 import unittest
+from unittest.mock import MagicMock, PropertyMock, patch
+
 import numpy as np
-from unittest.mock import patch, MagicMock, PropertyMock
+
 from chiaroscuro_forge.gpu import (
+    MAX_GPU_PIXELS,
     GPUBackend,
-    GPUInfo,
+    GPUBenchmark,
     GPUCapabilities,
     GPUContext,
-    gpu_available,
-    get_gpu_info,
-    get_gpu_backend,
-    benchmark_operation,
-    GPUBenchmark,
-    MAX_GPU_PIXELS,
+    GPUInfo,
     _image_too_large_for_gpu,
+    benchmark_operation,
+    get_gpu_backend,
+    get_gpu_info,
+    gpu_available,
 )
 
 

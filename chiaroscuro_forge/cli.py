@@ -5,16 +5,16 @@ This module provides the main CLI entry point with comprehensive argument parsin
 for single image processing, batch processing, analysis, and preset management.
 """
 
-import os
 import argparse
+import os
 
-from .exceptions import ImageProcessingError
-from .processing import process_image
 from .analysis import analyze_image_characteristics
-from .batch import batch_process_images, analyze_batch
+from .batch import analyze_batch, batch_process_images
 from .comparison import compare_processing_methods, suggest_optimal_params
-from .presets import load_preset, save_preset, list_presets
 from .config import ProcessingConfig
+from .exceptions import ImageProcessingError
+from .presets import list_presets, load_preset, save_preset
+from .processing import process_image
 
 
 def main():

@@ -9,13 +9,15 @@ and histogram-based comparisons.
 
 import logging
 from typing import Dict, List, Optional
+
 import numpy as np
-from skimage import color, img_as_float, feature
+from skimage import color, feature, img_as_float
 from skimage.metrics import structural_similarity as ssim_skimage
 from skimage.transform import pyramid_gaussian
-from .validation import validate_array
-from .exceptions import ImageProcessingError
+
 from .constants import VALID_HISTOGRAM_METHODS
+from .exceptions import ImageProcessingError
+from .validation import validate_array
 
 logger = logging.getLogger(__name__)
 

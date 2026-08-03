@@ -7,10 +7,11 @@ Tests cover:
 - Error handling
 """
 
-import unittest
 import os
-import tempfile
 import shutil
+import tempfile
+import unittest
+
 import numpy as np
 from skimage import io
 from skimage.util import img_as_ubyte

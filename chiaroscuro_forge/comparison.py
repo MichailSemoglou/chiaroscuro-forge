@@ -6,12 +6,12 @@ and suggesting optimal parameters based on image or batch analysis.
 """
 
 import os
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
 
+from .config import ProcessingConfig
 from .exceptions import ImageProcessingError
 from .processing import process_image
 from .validation import _validate_image_path, _validate_output_path
-from .config import ProcessingConfig
 
 
 def compare_processing_methods(

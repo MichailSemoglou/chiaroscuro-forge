@@ -22,15 +22,15 @@ Example:
     ...     result = cpu_gaussian_blur(image, sigma=2.0)
 """
 
+import functools
 import logging
 import threading
-import functools
 import time
+from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Tuple, Any, Callable
+from typing import Any, Callable, Optional, Tuple
 
 import numpy as np
-from dataclasses import dataclass
 
 from .optional import optional_import
 

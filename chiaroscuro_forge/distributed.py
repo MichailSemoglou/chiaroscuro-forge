@@ -31,13 +31,13 @@ from abc import ABC, abstractmethod
 from concurrent.futures import (
     CancelledError,
     ThreadPoolExecutor,
-    TimeoutError as FuturesTimeoutError,
 )
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Callable, Union
-from datetime import datetime, timedelta
+from typing import Any, Callable, Dict, List, Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -322,8 +322,8 @@ class LocalQueue(TaskQueue):
 
     def _register_builtin_functions(self):
         try:
-            from chiaroscuro_forge.processing import process_image
             from chiaroscuro_forge.analysis import analyze_image_characteristics
+            from chiaroscuro_forge.processing import process_image
 
             self._functions["process_image"] = process_image
             self._functions["analyze_image_characteristics"] = analyze_image_characteristics

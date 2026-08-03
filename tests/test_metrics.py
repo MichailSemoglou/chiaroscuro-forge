@@ -6,17 +6,19 @@ histogram similarity, perceptual metrics, and quality score calculation.
 """
 
 import unittest
+
 import numpy as np
-from skimage import io, img_as_ubyte
+from skimage import img_as_ubyte, io
+
+from chiaroscuro_forge.exceptions import ImageProcessingError
 from chiaroscuro_forge.metrics import (
-    ssim,
-    ms_ssim,
-    feature_similarity,
-    histogram_similarity,
     calculate_perceptual_metrics,
     calculate_quality_score,
+    feature_similarity,
+    histogram_similarity,
+    ms_ssim,
+    ssim,
 )
-from chiaroscuro_forge.exceptions import ImageProcessingError
 
 
 class TestSSIM(unittest.TestCase):

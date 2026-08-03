@@ -31,8 +31,8 @@ Example:
     ```
 """
 
-import os
 import logging
+import os
 import secrets
 import tempfile
 import threading
@@ -44,11 +44,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from PIL import Image
-from skimage import io as skio, img_as_ubyte as _ubyte
+from skimage import img_as_ubyte as _ubyte
+from skimage import io as skio
 
-from .optional import optional_import
 from .config import ProcessingConfig
-from .constants import MAX_FILE_SIZE_MB, MAX_IMAGE_PIXELS, MAX_DIMENSION
+from .constants import MAX_DIMENSION, MAX_FILE_SIZE_MB, MAX_IMAGE_PIXELS
+from .optional import optional_import
 from .processing import process_image as _process
 
 logger = logging.getLogger(__name__)
@@ -58,21 +59,21 @@ FASTAPI_AVAILABLE = (
 )
 
 if FASTAPI_AVAILABLE:
+    import uvicorn
     from fastapi import (
+        BackgroundTasks,
+        Depends,
         FastAPI,
         File,
-        UploadFile,
         Form,
         HTTPException,
-        Depends,
         Security,
+        UploadFile,
         status,
-        BackgroundTasks,
     )
-    from fastapi.security import APIKeyHeader
     from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.security import APIKeyHeader
     from pydantic import BaseModel, Field
-    import uvicorn
 
     # ===== API Models =====
 

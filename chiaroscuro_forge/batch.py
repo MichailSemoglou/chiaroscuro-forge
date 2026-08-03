@@ -5,19 +5,19 @@ This module provides functionality for processing multiple images in parallel,
 analyzing batches of images, and generating processing reports.
 """
 
-import os
 import glob
-import time
-import logging
 import json
-from typing import Dict, Optional, Any
+import logging
+import os
+import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from typing import Any, Dict, Optional
 
-from .exceptions import ImageProcessingError
-from .processing import process_image
-from .presets import load_preset
 from .analysis import analyze_image_characteristics
 from .config import ProcessingConfig
+from .exceptions import ImageProcessingError
+from .presets import load_preset
+from .processing import process_image
 from .validation import _validate_output_path
 
 

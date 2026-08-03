@@ -24,10 +24,9 @@ Example:
     ...     return cache.get(data)
 """
 
-from typing import Any, Dict, Callable, Optional, TypeVar, Protocol
-from functools import wraps
 import inspect
-
+from functools import wraps
+from typing import Any, Callable, Dict, Optional, Protocol, TypeVar
 
 T = TypeVar("T")
 

@@ -9,7 +9,7 @@ All parameters that affect image processing behavior live in one
 dataclass, with defaults, validation, and serialization in one place.
 """
 
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from typing import Any, Dict, Optional, Tuple
 
 

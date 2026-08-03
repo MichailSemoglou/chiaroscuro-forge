@@ -6,9 +6,10 @@ reducing complexity and improving maintainability.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Tuple
+from typing import Any, Dict, Tuple
+
 import numpy as np
-from skimage import filters, exposure, transform, color
+from skimage import color, exposure, filters, transform
 
 from .exceptions import ImageProcessingError
 

@@ -20,10 +20,10 @@ Usage
 ...     ...
 """
 
+import functools
 import importlib
 import logging
-import functools
-from typing import Optional, Any, Callable
+from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
 

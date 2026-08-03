@@ -5,13 +5,14 @@ This module provides tools for analyzing image characteristics and calculating
 comprehensive statistics to help determine optimal processing parameters.
 """
 
+from typing import Any, Dict, Union
+
 import numpy as np
-from typing import Dict, Any, Union
-from skimage import io, color, filters, feature
-from skimage import img_as_float, img_as_ubyte
+from skimage import color, feature, filters, img_as_float, img_as_ubyte, io
+
+from .cache import cached_image_stats
 from .exceptions import ImageProcessingError
 from .validation import _validate_image_path, validate_array
-from .cache import cached_image_stats
 
 
 @cached_image_stats(ttl=3600)  # Cache for 1 hour
@@ -265,7 +266,7 @@ def get_image_statistics(image: Union[str, np.ndarray]) -> Dict[str, Any]:
 
     # Flatten for statistics (use luminance for color images)
     if is_color:
-        from .constants import LUMINANCE_R, LUMINANCE_G, LUMINANCE_B
+        from .constants import LUMINANCE_B, LUMINANCE_G, LUMINANCE_R
 
         luminance = (
             LUMINANCE_R * img_float[:, :, 0]

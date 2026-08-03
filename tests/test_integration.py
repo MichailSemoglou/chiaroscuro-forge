@@ -6,25 +6,25 @@ batch, tiling, preset-driven runs, config-object integration, and
 expanded CLI smoke tests.
 """
 
-import os
-import sys
 import json
+import os
+import shutil
+import sys
 import tempfile
 import unittest
-import shutil
-from unittest.mock import patch, MagicMock
 from io import StringIO
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 from PIL import Image
-from skimage import io, img_as_ubyte
+from skimage import img_as_ubyte, io
 
-from chiaroscuro_forge.processing import process_image
-from chiaroscuro_forge.config import ProcessingConfig
 from chiaroscuro_forge import presets as preset_module
-from chiaroscuro_forge.presets import save_preset, load_preset, list_presets
 from chiaroscuro_forge.batch import batch_process_images
+from chiaroscuro_forge.config import ProcessingConfig
 from chiaroscuro_forge.exceptions import ImageProcessingError
+from chiaroscuro_forge.presets import list_presets, load_preset, save_preset
+from chiaroscuro_forge.processing import process_image
 
 
 class TestProcessingConfigIntegration(unittest.TestCase):

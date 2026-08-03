@@ -1,12 +1,12 @@
 """Tests for the command-line interface module."""
 
+import json
 import os
 import sys
-import json
 import tempfile
 import unittest
-from unittest.mock import patch, MagicMock
 from io import StringIO
+from unittest.mock import MagicMock, patch
 
 from PIL import Image
 

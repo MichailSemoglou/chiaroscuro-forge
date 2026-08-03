@@ -9,16 +9,16 @@ Tests cover:
 - Directory creation and cleanup
 """
 
-import unittest
-import os
 import json
-import tempfile
+import os
 import shutil
-from unittest.mock import patch, mock_open, MagicMock
+import tempfile
+import unittest
+from unittest.mock import MagicMock, mock_open, patch
 
-from chiaroscuro_forge.presets import load_preset, save_preset, list_presets
-from chiaroscuro_forge.exceptions import ImageProcessingError
 from chiaroscuro_forge.config import ProcessingConfig
+from chiaroscuro_forge.exceptions import ImageProcessingError
+from chiaroscuro_forge.presets import list_presets, load_preset, save_preset
 
 
 class TestLoadPreset(unittest.TestCase):

@@ -11,23 +11,24 @@ Tests comprehensive security controls including:
 Target: 13% → 80% coverage for validation.py
 """
 
-import unittest
-import tempfile
 import os
+import tempfile
+import unittest
 from pathlib import Path
+
 import numpy as np
 
+from chiaroscuro_forge.constants import (
+    MAX_DIMENSION,
+    MAX_FILE_SIZE_MB,
+    MAX_IMAGE_PIXELS,
+    MAX_PATH_LENGTH,
+)
+from chiaroscuro_forge.exceptions import ImageProcessingError
 from chiaroscuro_forge.validation import (
     validate_array,
     validate_image_path,
     validate_processing_params,
-)
-from chiaroscuro_forge.exceptions import ImageProcessingError
-from chiaroscuro_forge.constants import (
-    MAX_FILE_SIZE_MB,
-    MAX_IMAGE_PIXELS,
-    MAX_DIMENSION,
-    MAX_PATH_LENGTH,
 )
 
 
