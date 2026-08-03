@@ -1,10 +1,8 @@
 # Contributing to Chiaroscuro Forge
 
-First off, thank you for considering contributing to Chiaroscuro Forge! It's people like you that make Chiaroscuro Forge such a great tool.
+Thanks for considering contributing to Chiaroscuro Forge.
 
 ## Development Process
-
-We use GitHub to host code, to track issues and feature requests, as well as accept pull requests.
 
 ### Pull Requests
 
@@ -23,15 +21,52 @@ We use GitHub to host code, to track issues and feature requests, as well as acc
 
 ## Code Style
 
-We use PEP 8 for Python code styling. Please ensure your code adheres to these standards.
+We use [Black](https://github.com/psf/black) with a line length of 100, [isort](https://github.com/PyCQA/isort) with the `black` profile, and [flake8](https://flake8.pycqa.org/) for linting. All code must pass the following checks before submission:
+
+```bash
+black --check --line-length 100 chiaroscuro_forge/ tests/
+isort --check-only --profile black chiaroscuro_forge/ tests/
+flake8 chiaroscuro_forge/
+```
+
+Docstrings follow the [numpydoc](https://numpydoc.readthedocs.io/) convention. The docstring and type-checking commands below are local-only checks and are not part of the CI lint job:
+
+```bash
+pip install flake8-docstrings mypy
+flake8 --extend-select=D chiaroscuro_forge/
+mypy chiaroscuro_forge/
+```
 
 ## Testing
 
-If you've added code that should be tested, add tests. All tests should pass before we'll accept your pull request.
+All tests must pass and new features must include tests. Coverage should not decrease below the existing bar.
 
 ```bash
-# Run tests
-python -m unittest discover
+# Run the full suite
+pytest tests/ -v
+
+# Run with coverage
+pytest tests/ --cov=chiaroscuro_forge --cov-report=term --cov-report=html
+
+# Run only the quick subset (used locally during development)
+pytest tests/ -q --no-cov --ignore=tests/test_property_based.py --ignore=tests/test_gpu.py -k "not test_tiling"
+```
+
+## Lint, format, and coverage checklist
+
+```bash
+# Format
+black --line-length 100 chiaroscuro_forge/ tests/
+isort --profile black chiaroscuro_forge/ tests/
+
+# Lint
+flake8 chiaroscuro_forge/
+
+# Type check
+mypy chiaroscuro_forge/
+
+# Test with coverage
+pytest tests/ --cov=chiaroscuro_forge --cov-fail-under=64
 ```
 
 ## Issue Reporting Guidelines
@@ -47,7 +82,7 @@ When reporting issues, please include:
 
 ## Feature Requests
 
-We love to hear your ideas for new features! Please use the GitHub issue tracker to submit feature requests.
+We love to hear your ideas for new features. Please use the GitHub issue tracker to submit feature requests.
 
 ## Community
 
