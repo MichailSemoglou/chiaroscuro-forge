@@ -22,7 +22,7 @@ An intelligent image enhancement tool inspired by Renaissance techniques. Featur
 - **Preset System**: Save and reuse customized enhancement settings
 - **Application Types**: Specialized processing for photography, documents, medical images, and art
 
-### Advanced Features (Phase 4)
+### Advanced Features
 
 - **GPU Acceleration**: CUDA (NVIDIA), OpenCL (cross-platform), and Metal (Apple Silicon) support for compute-intensive operations
 - **REST API**: FastAPI-based HTTP API with authentication, rate limiting, and async job processing
