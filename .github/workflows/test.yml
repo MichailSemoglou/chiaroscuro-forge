@@ -21,7 +21,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install tools
-        run: pip install black flake8 isort
+        run: pip install black==25.11.0 flake8 isort
       - name: Check formatting
         run: |
           black --check --line-length 100 chiaroscuro_forge/ tests/
