@@ -1,21 +1,21 @@
 """Tests for the caching module."""
 
 import os
-import time
 import tempfile
+import time
 import unittest
-from unittest.mock import patch, MagicMock
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from PIL import Image
 
 from chiaroscuro_forge.cache import (
     CacheManager,
-    get_cache_manager,
-    compute_file_hash,
-    get_file_cache_key,
     cached_image_stats,
     cached_preset,
+    compute_file_hash,
+    get_cache_manager,
+    get_file_cache_key,
     invalidate_preset_cache,
     invalidate_stats_cache,
 )

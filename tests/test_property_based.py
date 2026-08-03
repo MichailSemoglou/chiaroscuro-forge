@@ -8,12 +8,13 @@ They will be skipped if hypothesis is not available.
 """
 
 import numpy as np
-from PIL import Image
 import pytest
+from PIL import Image
 
 # Check if Hypothesis is available
 try:
-    from hypothesis import given, strategies as st, settings, assume
+    from hypothesis import assume, given, settings
+    from hypothesis import strategies as st
     from hypothesis.extra.numpy import arrays
 
     HYPOTHESIS_AVAILABLE = True
@@ -58,15 +59,15 @@ except ImportError:
     valid_gamma_values = lambda *args, **kwargs: None
     valid_scale_factors = lambda *args, **kwargs: None
 
-from chiaroscuro_forge.pipeline import (
-    ResizeStage,
-    DenoiseStage,
-    ContrastStage,
-    ImageProcessingPipeline,
-)
 from chiaroscuro_forge.metrics import (
-    ssim,
     ms_ssim,
+    ssim,
+)
+from chiaroscuro_forge.pipeline import (
+    ContrastStage,
+    DenoiseStage,
+    ImageProcessingPipeline,
+    ResizeStage,
 )
 from chiaroscuro_forge.processing import process_image
 

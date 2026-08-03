@@ -20,3 +20,8 @@ exclude = '''
   | chiaroscuro_forge\.py
 )/
 '''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+src_paths = ["chiaroscuro_forge", "tests"]

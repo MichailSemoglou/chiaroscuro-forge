@@ -7,8 +7,8 @@ Tests cover:
 - Module metadata
 """
 
-import unittest
 import sys
+import unittest
 from importlib import reload
 
 
@@ -184,12 +184,12 @@ class TestImportStrategies(unittest.TestCase):
     def test_modular_imports_work(self):
         """Test that modular structure imports work."""
         # These should all succeed
-        from chiaroscuro_forge.processing import process_image
         from chiaroscuro_forge.analysis import analyze_image_characteristics
         from chiaroscuro_forge.batch import batch_process_images
         from chiaroscuro_forge.comparison import compare_processing_methods
-        from chiaroscuro_forge.presets import save_preset, load_preset, list_presets
         from chiaroscuro_forge.exceptions import ImageProcessingError
+        from chiaroscuro_forge.presets import list_presets, load_preset, save_preset
+        from chiaroscuro_forge.processing import process_image
 
         # Verify all are callable/classes
         self.assertTrue(callable(process_image))

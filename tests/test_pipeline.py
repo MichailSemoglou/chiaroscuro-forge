@@ -8,19 +8,21 @@ Target: 80%+ coverage for pipeline.py (currently 24%)
 """
 
 import unittest
+
 import numpy as np
+
+from chiaroscuro_forge.exceptions import ImageProcessingError
 from chiaroscuro_forge.pipeline import (
+    ColorPreservationStage,
+    ContrastStage,
+    DenoiseStage,
+    GammaCorrectionStage,
+    ImageProcessingPipeline,
     PipelineStage,
     ResizeStage,
-    DenoiseStage,
     SharpenStage,
-    ContrastStage,
-    GammaCorrectionStage,
-    ColorPreservationStage,
-    ImageProcessingPipeline,
     create_standard_pipeline,
 )
-from chiaroscuro_forge.exceptions import ImageProcessingError
 
 
 class TestPipelineStage(unittest.TestCase):

@@ -1,22 +1,22 @@
 """Tests for the batch processing module."""
 
-import os
 import json
+import logging
+import os
 import tempfile
 import unittest
-import logging
 from pathlib import Path
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import MagicMock, call, patch
 
 import numpy as np
 from PIL import Image
 
 from chiaroscuro_forge.batch import (
-    setup_logger,
     _process_single_image,
     _process_single_image_wrapper,
-    batch_process_images,
     analyze_batch,
+    batch_process_images,
+    setup_logger,
 )
 from chiaroscuro_forge.exceptions import ImageProcessingError
 
