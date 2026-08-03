@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/pypi/l/chiaroscuro-forge.svg)](https://github.com/MichailSemoglou/chiaroscuro-forge/blob/main/LICENSE)
 [![CI](https://github.com/MichailSemoglou/chiaroscuro-forge/actions/workflows/test.yml/badge.svg)](https://github.com/MichailSemoglou/chiaroscuro-forge/actions/workflows/test.yml)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18200572.svg)](https://doi.org/10.5281/zenodo.18200572)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18200571.svg)](https://doi.org/10.5281/zenodo.18200571)
 
 An intelligent image enhancement tool inspired by Renaissance techniques. Features automatic parameter detection, advanced color preservation, quality metrics, parallel batch processing, GPU acceleration, REST API, and distributed processing. Perfect for photographers and developers seeking to transform ordinary images with artistic precision.
 
