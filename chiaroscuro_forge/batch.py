@@ -248,8 +248,18 @@ def batch_process_images(
                 try:
                     result = future.result()
                     results["files"][input_path] = result
-                    results["successful"] += 1
-                    logger.info("Successfully processed: %s", os.path.basename(input_path))
+                    if isinstance(result, dict) and "error" in result:
+                        results["failed"] += 1
+                        logger.error(
+                            "Error processing %s: %s",
+                            os.path.basename(input_path),
+                            result["error"],
+                        )
+                    else:
+                        results["successful"] += 1
+                        logger.info(
+                            "Successfully processed: %s", os.path.basename(input_path)
+                        )
                 except Exception as e:
                     logger.error(
                         "Error processing %s: %s", os.path.basename(input_path), type(e).__name__
