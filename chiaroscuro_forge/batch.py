@@ -5,18 +5,20 @@ This module provides functionality for processing multiple images in parallel,
 analyzing batches of images, and generating processing reports.
 """
 
-import os
 import glob
-import time
-import logging
 import json
-from typing import Dict, List, Optional, Any, Union
+import logging
+import os
+import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from typing import Any, Dict, Optional
 
-from .exceptions import ImageProcessingError
-from .processing import process_image
-from .presets import load_preset
 from .analysis import analyze_image_characteristics
+from .config import ProcessingConfig
+from .exceptions import ImageProcessingError
+from .presets import load_preset
+from .processing import process_image
+from .validation import _validate_output_path
 
 
 def setup_logger(log_file=None, log_level=logging.INFO):
@@ -48,10 +50,18 @@ def setup_logger(log_file=None, log_level=logging.INFO):
     return logger
 
 
-def _process_single_image_wrapper(input_path, output_path, params, application_type):
-    """Wrapper function for ProcessPoolExecutor to handle exceptions."""
+def _process_single_image_wrapper(
+    input_path, output_path, params=None, application_type="general", config=None
+):
+    """Wrapper for ProcessPoolExecutor that sends params or config."""
     try:
-        return _process_single_image(input_path, output_path, params, application_type)
+        if config is not None:
+            return _process_single_image(
+                input_path, output_path, config=config, application_type=application_type
+            )
+        return _process_single_image(
+            input_path, output_path, params=params, application_type=application_type
+        )
     except Exception as e:
         return {"error": str(e)}
 
@@ -59,28 +69,34 @@ def _process_single_image_wrapper(input_path, output_path, params, application_t
 def _process_single_image(
     input_path: str,
     output_path: str,
-    params: Dict[str, Any],
-    application_type: str,
+    params: Dict[str, Any] = None,
+    application_type: str = "general",
+    config=None,
     logger=None,
 ) -> Dict[str, Any]:
     """Process a single image and return results."""
     if logger:
-        logger.info(f"Processing: {input_path} -> {output_path}")
+        logger.info("Processing: %s", os.path.basename(input_path))
 
     try:
-        # Process the image
-        _, metrics = process_image(
-            input_path,
-            output_path=output_path,
-            application_type=application_type,
-            **params,
-        )
+        if config is not None:
+            _, metrics = process_image(
+                input_path,
+                output_path=output_path,
+                config=config,
+            )
+        else:
+            _, metrics = process_image(
+                input_path,
+                output_path=output_path,
+                application_type=application_type,
+                **(params or {}),
+            )
 
-        # Return success result with metrics
         return {"status": "success", "output_path": output_path, "metrics": metrics}
     except Exception as e:
         if logger:
-            logger.error(f"Error processing {input_path}: {e}")
+            logger.error("Error processing %s: %s", os.path.basename(input_path), type(e).__name__)
         raise
 
 
@@ -88,6 +104,7 @@ def batch_process_images(
     input_pattern: str,
     output_dir: str,
     params: Optional[Dict[str, Any]] = None,
+    config: "Optional['ProcessingConfig']" = None,
     preset_name: Optional[str] = None,
     application_type: str = "general",
     n_workers: int = 4,
@@ -115,13 +132,14 @@ def batch_process_images(
     logger = setup_logger(log_file)
 
     # Create output directory if it doesn't exist
-    if not os.path.exists(output_dir):
+    safe_output = _validate_output_path(output_dir)
+    if not os.path.exists(safe_output):
         try:
-            os.makedirs(output_dir)
-            logger.info(f"Created output directory: {output_dir}")
+            os.makedirs(safe_output)
+            logger.info("Created output directory")
         except Exception as e:
-            logger.error(f"Failed to create output directory: {e}")
-            raise ImageProcessingError(f"Failed to create output directory: {e}")
+            logger.error("Failed to create output directory: %s", type(e).__name__)
+            raise ImageProcessingError(f"Failed to create output directory: {e}") from e
 
     # Get list of input files
     input_files = glob.glob(input_pattern)
@@ -131,8 +149,13 @@ def batch_process_images(
 
     logger.info(f"Found {len(input_files)} files to process")
 
-    # Load preset if specified
-    if preset_name:
+    # Load preset if specified (config-based path takes precedence)
+    use_config = config is not None
+
+    if use_config:
+        processing_params = {}
+        logger.info("Using provided ProcessingConfig")
+    elif preset_name:
         try:
             processing_params = load_preset(preset_name)
             logger.info(f"Loaded preset: {preset_name}")
@@ -147,7 +170,7 @@ def batch_process_images(
     for input_path in input_files:
         filename = os.path.basename(input_path)
         base_name, ext = os.path.splitext(filename)
-        output_path = os.path.join(output_dir, f"{base_name}_processed{ext}")
+        output_path = os.path.join(safe_output, f"{base_name}_processed{ext}")
 
         if skip_existing and os.path.exists(output_path):
             logger.info(f"Skipping existing file: {output_path}")
@@ -174,12 +197,26 @@ def batch_process_images(
         # Sequential processing
         for input_path, output_path in tasks:
             try:
-                results["files"][input_path] = _process_single_image(
-                    input_path, output_path, processing_params, application_type, logger
-                )
+                if use_config:
+                    results["files"][input_path] = _process_single_image(
+                        input_path,
+                        output_path,
+                        config=config,
+                        logger=logger,
+                    )
+                else:
+                    results["files"][input_path] = _process_single_image(
+                        input_path,
+                        output_path,
+                        params=processing_params,
+                        application_type=application_type,
+                        logger=logger,
+                    )
                 results["successful"] += 1
             except Exception as e:
-                logger.error(f"Error processing {input_path}: {e}")
+                logger.error(
+                    "Error processing %s: %s", os.path.basename(input_path), type(e).__name__
+                )
                 results["files"][input_path] = {"error": str(e)}
                 results["failed"] += 1
     else:
@@ -187,13 +224,21 @@ def batch_process_images(
         with ProcessPoolExecutor(max_workers=n_workers) as executor:
             futures = {}
             for input_path, output_path in tasks:
-                future = executor.submit(
-                    _process_single_image_wrapper,
-                    input_path,
-                    output_path,
-                    processing_params,
-                    application_type,
-                )
+                if use_config:
+                    future = executor.submit(
+                        _process_single_image_wrapper,
+                        input_path,
+                        output_path,
+                        config=config,
+                    )
+                else:
+                    future = executor.submit(
+                        _process_single_image_wrapper,
+                        input_path,
+                        output_path,
+                        params=processing_params,
+                        application_type=application_type,
+                    )
                 futures[future] = input_path
 
             for future in as_completed(futures):
@@ -201,39 +246,45 @@ def batch_process_images(
                 try:
                     result = future.result()
                     results["files"][input_path] = result
-                    results["successful"] += 1
-                    logger.info(f"Successfully processed: {input_path}")
+                    if isinstance(result, dict) and "error" in result:
+                        results["failed"] += 1
+                        logger.error(
+                            "Error processing %s: %s",
+                            os.path.basename(input_path),
+                            result["error"],
+                        )
+                    else:
+                        results["successful"] += 1
+                        logger.info("Successfully processed: %s", os.path.basename(input_path))
                 except Exception as e:
-                    logger.error(f"Error processing {input_path}: {e}")
+                    logger.error(
+                        "Error processing %s: %s", os.path.basename(input_path), type(e).__name__
+                    )
                     results["files"][input_path] = {"error": str(e)}
                     results["failed"] += 1
 
     end_time = time.time()
     results["processing_time"] = end_time - start_time
 
-    logger.info(
-        f"Batch processing completed in {results['processing_time']:.2f} seconds"
-    )
+    logger.info(f"Batch processing completed in {results['processing_time']:.2f} seconds")
     logger.info(
         f"Successful: {results['successful']}, Failed: {results['failed']}, Skipped: {results['skipped']}"
     )
 
     # Generate report if requested
     if generate_report:
-        report_path = os.path.join(output_dir, "batch_processing_report.json")
+        report_path = os.path.join(safe_output, "batch_processing_report.json")
         try:
             with open(report_path, "w") as f:
                 json.dump(results, f, indent=2)
-            logger.info(f"Report saved to: {report_path}")
+            logger.info("Report saved")
         except Exception as e:
-            logger.error(f"Failed to save report: {e}")
+            logger.error("Failed to save report: %s", type(e).__name__)
 
     return results
 
 
-def analyze_batch(
-    input_pattern: str, output_file: Optional[str] = None
-) -> Dict[str, Any]:
+def analyze_batch(input_pattern: str, output_file: Optional[str] = None) -> Dict[str, Any]:
     """
     Analyze multiple images to extract characteristics.
 
@@ -274,12 +325,8 @@ def analyze_batch(
 
             for metric in ["brightness", "contrast", "noise_level", "edge_density"]:
                 value = chars[metric]
-                results["summary"][metric]["min"] = min(
-                    results["summary"][metric]["min"], value
-                )
-                results["summary"][metric]["max"] = max(
-                    results["summary"][metric]["max"], value
-                )
+                results["summary"][metric]["min"] = min(results["summary"][metric]["min"], value)
+                results["summary"][metric]["max"] = max(results["summary"][metric]["max"], value)
                 results["summary"][metric]["sum"] += value
 
         except Exception as e:

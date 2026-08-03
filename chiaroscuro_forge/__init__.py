@@ -16,7 +16,7 @@ Example:
     Basic usage for image enhancement::
 
         from chiaroscuro_forge import process_image
-        
+
         processed, metrics = process_image(
             "input.jpg",
             output_path="enhanced.jpg",
@@ -28,66 +28,74 @@ For more examples, see the documentation at:
 https://github.com/MichailSemoglou/chiaroscuro-forge
 """
 
-__version__ = "1.0.1"
+__version__ = "2.0.0"
 __author__ = "Michail Semoglou"
 __email__ = "m.semoglou@tongji.edu.cn"
 __license__ = "MIT"
 
-# Import all functionality from modular structure
-from chiaroscuro_forge.processing import process_image
 from chiaroscuro_forge.analysis import (
     analyze_image_characteristics,
     get_image_statistics,
 )
-from chiaroscuro_forge.batch import batch_process_images, analyze_batch
-from chiaroscuro_forge.comparison import compare_processing_methods
-from chiaroscuro_forge.presets import save_preset, load_preset, list_presets
-from chiaroscuro_forge.exceptions import ImageProcessingError
+from chiaroscuro_forge.batch import analyze_batch, batch_process_images
 from chiaroscuro_forge.cache import (
     get_cache_manager,
     invalidate_preset_cache,
     invalidate_stats_cache,
 )
-from chiaroscuro_forge.tiling import (
-    process_image_tiled,
-    should_use_tiling,
-)
+from chiaroscuro_forge.comparison import compare_processing_methods
+from chiaroscuro_forge.config import ProcessingConfig
 from chiaroscuro_forge.di import (
     ServiceContainer,
     get_container,
     inject,
     setup_default_services,
 )
+from chiaroscuro_forge.distributed import (
+    DistributedBatchProcessor,
+    LocalQueue,
+    QueueConfig,
+    QueueHealth,
+    TaskQueue,
+    TaskResult,
+    TaskStatus,
+    create_queue,
+)
+from chiaroscuro_forge.exceptions import ImageProcessingError
 from chiaroscuro_forge.gpu import (
-    GPUContext,
-    gpu_available,
-    get_gpu_info,
-    get_gpu_backend,
     GPUBackend,
+    GPUContext,
     GPUInfo,
     benchmark_operation,
+    get_gpu_backend,
+    get_gpu_info,
+    gpu_available,
+    safe_gpu,
 )
-from chiaroscuro_forge.distributed import (
-    TaskQueue,
-    LocalQueue,
-    DistributedBatchProcessor,
-    TaskStatus,
-    TaskResult,
-    create_queue,
+from chiaroscuro_forge.presets import list_presets, load_preset, save_preset
+
+# Import all functionality from modular structure
+from chiaroscuro_forge.processing import process_image
+from chiaroscuro_forge.tiling import (
+    process_image_tiled,
+    should_use_tiling,
 )
 
 # Optional API module - only available if fastapi is installed
 try:
     from chiaroscuro_forge.api import (
-        app,
+        APIResponse,
+        JobInfo,
+    )
+    from chiaroscuro_forge.api import JobStatus as APIJobStatus
+    from chiaroscuro_forge.api import (
+        ProcessingParams,
         api_key_manager,
+        app,
         job_manager,
         run_server,
-        JobStatus as APIJobStatus,
-        JobInfo,
-        APIResponse,
-        ProcessingParams,
     )
+
     _api_available = True
 except ImportError:
     _api_available = False
@@ -103,6 +111,7 @@ except ImportError:
 
 __all__ = [
     "process_image",
+    "ProcessingConfig",
     "analyze_image_characteristics",
     "get_image_statistics",
     "batch_process_images",
@@ -132,12 +141,15 @@ __all__ = [
     "GPUBackend",
     "GPUInfo",
     "benchmark_operation",
+    "safe_gpu",
     # Phase 4.2: Distributed processing
     "TaskQueue",
     "LocalQueue",
     "DistributedBatchProcessor",
     "TaskStatus",
     "TaskResult",
+    "QueueConfig",
+    "QueueHealth",
     "create_queue",
     # Phase 4.3: REST API
     "app",

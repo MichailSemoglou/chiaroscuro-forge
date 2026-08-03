@@ -5,15 +5,16 @@ This module provides the main CLI entry point with comprehensive argument parsin
 for single image processing, batch processing, analysis, and preset management.
 """
 
-import os
 import argparse
+import os
 
-from .exceptions import ImageProcessingError
-from .processing import process_image
 from .analysis import analyze_image_characteristics
-from .batch import batch_process_images, analyze_batch
+from .batch import analyze_batch, batch_process_images
 from .comparison import compare_processing_methods, suggest_optimal_params
-from .presets import load_preset, save_preset, list_presets
+from .config import ProcessingConfig
+from .exceptions import ImageProcessingError
+from .presets import list_presets, load_preset, save_preset
+from .processing import process_image
 
 
 def main():
@@ -121,13 +122,13 @@ def main():
             return 1
 
         app_type = args.application
-        params = {}
+        config = ProcessingConfig(application_type=app_type)
 
         # Load preset if specified
         if args.preset:
             try:
                 preset_params = load_preset(args.preset)
-                params.update(preset_params)
+                config = config.merge(preset_params)
                 print(f"Loaded preset: {args.preset}")
             except ImageProcessingError as e:
                 print(f"Error: {e}")
@@ -168,9 +169,7 @@ def main():
             analysis = analyze_image_characteristics(args.image_path)
 
             print("\nImage Characteristics:")
-            print(
-                f"Color Image: {'Yes' if analysis['characteristics']['is_color'] else 'No'}"
-            )
+            print(f"Color Image: {'Yes' if analysis['characteristics']['is_color'] else 'No'}")
             print(f"Brightness: {analysis['characteristics']['brightness']:.2f}")
             print(f"Contrast: {analysis['characteristics']['contrast']:.2f}")
             print(f"Noise Level: {analysis['characteristics']['noise_level']:.4f}")
@@ -182,11 +181,12 @@ def main():
 
             print(f"\nSuggested Application Type: {analysis['suggested_application']}")
 
-            params.update(analysis["suggested_params"])
+            config = config.merge(analysis["suggested_params"])
 
             # Use suggested application type if still using default
             if args.application == "general":
                 app_type = analysis["suggested_application"]
+                config.application_type = app_type
 
         # Comparison mode (single image only)
         if args.compare and not args.batch:
@@ -218,9 +218,7 @@ def main():
                 if not args.output:
                     best_name = results["best_method"]["name"]
                     if "output_path" in results[best_name]:
-                        print(
-                            f"Best result saved to: {results[best_name]['output_path']}"
-                        )
+                        print(f"Best result saved to: {results[best_name]['output_path']}")
             return 0
 
         # Batch processing mode
@@ -236,18 +234,14 @@ def main():
             results = batch_process_images(
                 args.image_path,
                 args.output,
-                params=params,
-                preset_name=args.preset if not params else None,
-                application_type=app_type,
+                config=config,
                 n_workers=args.workers,
                 skip_existing=args.skip_existing,
                 generate_report=args.report,
                 log_file=args.log_file,
             )
 
-            print(
-                f"\nBatch processing completed in {results['processing_time']:.2f} seconds"
-            )
+            print(f"\nBatch processing completed in {results['processing_time']:.2f} seconds")
             print(f"Total images: {results['total']}")
             print(f"Processed successfully: {results['successful']}")
             print(f"Failed: {results['failed']}")
@@ -265,8 +259,7 @@ def main():
             processed, metrics = process_image(
                 args.image_path,
                 output_path=args.output,
-                application_type=app_type,
-                **params,
+                config=config,
             )
 
             if metrics:
@@ -281,7 +274,7 @@ def main():
         if args.save_preset:
             try:
                 save_preset(
-                    args.save_preset, params, description=args.preset_description or ""
+                    args.save_preset, config.to_dict(), description=args.preset_description or ""
                 )
                 print(f"\nSaved preset '{args.save_preset}'")
             except ImageProcessingError as e:

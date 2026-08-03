@@ -6,11 +6,12 @@ and suggesting optimal parameters based on image or batch analysis.
 """
 
 import os
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
 
+from .config import ProcessingConfig
 from .exceptions import ImageProcessingError
 from .processing import process_image
-from .validation import _validate_image_path
+from .validation import _validate_image_path, _validate_output_path
 
 
 def compare_processing_methods(
@@ -37,133 +38,137 @@ def compare_processing_methods(
     if application_type not in valid_app_types:
         raise ImageProcessingError(f"Application type must be one of {valid_app_types}")
 
-    if output_dir and not os.path.exists(output_dir):
-        try:
-            os.makedirs(output_dir)
-        except Exception as e:
-            raise ImageProcessingError(f"Failed to create output directory: {str(e)}")
+    if output_dir:
+        output_dir = _validate_output_path(output_dir)
+        if not os.path.exists(output_dir):
+            try:
+                os.makedirs(output_dir)
+            except OSError as e:
+                raise ImageProcessingError(
+                    f"Failed to create output directory: {type(e).__name__}"
+                ) from e
 
     methods = [
         {
             "name": "Standard Equalization (HSV)",
-            "params": {
-                "equalize_method": "standard",
-                "color_preservation": "none",
-                "denoise_type": "gaussian",
-                "denoise_sigma": 0.8,
-                "sharpen": True,
-                "sharpen_amount": 1.2,
-                "gamma_correction": 1.05,
-            },
+            "config": ProcessingConfig(
+                equalize_method="standard",
+                color_preservation="none",
+                denoise_type="gaussian",
+                denoise_sigma=0.8,
+                sharpen=True,
+                sharpen_amount=1.2,
+                gamma_correction=1.05,
+            ),
         },
         {
             "name": "LAB Color Preservation",
-            "params": {
-                "equalize_method": "stretch",
-                "color_preservation": "lab",
-                "color_preservation_strength": 0.9,
-                "denoise_type": "gaussian",
-                "denoise_sigma": 0.8,
-                "sharpen": True,
-                "sharpen_amount": 1.2,
-                "gamma_correction": 1.05,
-            },
+            "config": ProcessingConfig(
+                equalize_method="stretch",
+                color_preservation="lab",
+                color_preservation_strength=0.9,
+                denoise_type="gaussian",
+                denoise_sigma=0.8,
+                sharpen=True,
+                sharpen_amount=1.2,
+                gamma_correction=1.05,
+            ),
         },
         {
             "name": "Gentle Enhancement",
-            "params": {
-                "equalize_method": "stretch",
-                "contrast_stretch_percentiles": (5, 95),
-                "color_preservation": "lab",
-                "color_preservation_strength": 0.9,
-                "denoise_type": "gaussian",
-                "denoise_sigma": 0.5,
-                "sharpen": True,
-                "sharpen_amount": 1.0,
-                "gamma_correction": 1.0,
-            },
+            "config": ProcessingConfig(
+                equalize_method="stretch",
+                contrast_stretch_percentiles=(5, 95),
+                color_preservation="lab",
+                color_preservation_strength=0.9,
+                denoise_type="gaussian",
+                denoise_sigma=0.5,
+                sharpen=True,
+                sharpen_amount=1.0,
+                gamma_correction=1.0,
+            ),
         },
         {
             "name": "Color Ratio Preservation",
-            "params": {
-                "equalize_method": "stretch",
-                "color_preservation": "ratio",
-                "contrast_stretch_percentiles": (2, 98),
-                "denoise_type": "gaussian",
-                "denoise_sigma": 0.8,
-                "sharpen": True,
-                "sharpen_amount": 1.2,
-                "gamma_correction": 1.05,
-            },
+            "config": ProcessingConfig(
+                equalize_method="stretch",
+                color_preservation="ratio",
+                contrast_stretch_percentiles=(2, 98),
+                denoise_type="gaussian",
+                denoise_sigma=0.8,
+                sharpen=True,
+                sharpen_amount=1.2,
+                gamma_correction=1.05,
+            ),
         },
         {
             "name": "Detail Preservation",
-            "params": {
-                "equalize_method": "clahe",
-                "clip_limit": 0.02,
-                "clip_limit_kernel_size": 16,
-                "color_preservation": "lab",
-                "color_preservation_strength": 0.8,
-                "denoise_type": "bilateral",
-                "denoise_sigma": 0.6,
-                "sharpen": True,
-                "sharpen_amount": 1.4,
-                "gamma_correction": 1.0,
-            },
+            "config": ProcessingConfig(
+                equalize_method="clahe",
+                clip_limit=0.02,
+                clip_limit_kernel_size=16,
+                color_preservation="lab",
+                color_preservation_strength=0.8,
+                denoise_type="bilateral",
+                denoise_sigma=0.6,
+                sharpen=True,
+                sharpen_amount=1.4,
+                gamma_correction=1.0,
+            ),
         },
         {
             "name": "High Dynamic Range (HDR)",
-            "params": {
-                "equalize_method": "clahe",
-                "clip_limit": 0.03,
-                "clip_limit_kernel_size": 16,
-                "color_preservation": "lab",
-                "color_preservation_strength": 0.85,
-                "denoise_type": "bilateral",
-                "denoise_sigma": 0.6,
-                "sharpen": True,
-                "sharpen_amount": 1.6,
-                "gamma_correction": 0.9,
-            },
+            "config": ProcessingConfig(
+                equalize_method="clahe",
+                clip_limit=0.03,
+                clip_limit_kernel_size=16,
+                color_preservation="lab",
+                color_preservation_strength=0.85,
+                denoise_type="bilateral",
+                denoise_sigma=0.6,
+                sharpen=True,
+                sharpen_amount=1.6,
+                gamma_correction=0.9,
+            ),
         },
         {
             "name": "Vintage Look",
-            "params": {
-                "equalize_method": "standard",
-                "color_preservation": "lab",
-                "color_preservation_strength": 0.5,
-                "denoise_type": "median",
-                "denoise_sigma": 1.0,
-                "sharpen": False,
-                "gamma_correction": 1.2,
-            },
+            "config": ProcessingConfig(
+                equalize_method="standard",
+                color_preservation="lab",
+                color_preservation_strength=0.5,
+                denoise_type="median",
+                denoise_sigma=1.0,
+                sharpen=False,
+                gamma_correction=1.2,
+            ),
         },
         {
             "name": "Black & White Contrast",
-            "params": {
-                "equalize_method": "stretch",
-                "contrast_stretch_percentiles": (2, 98),
-                "color_preservation": "none",
-                "denoise_type": "gaussian",
-                "denoise_sigma": 0.7,
-                "sharpen": True,
-                "sharpen_amount": 1.3,
-                "gamma_correction": 1.1,
-            },
+            "config": ProcessingConfig(
+                equalize_method="stretch",
+                contrast_stretch_percentiles=(2, 98),
+                color_preservation="none",
+                denoise_type="gaussian",
+                denoise_sigma=0.7,
+                sharpen=True,
+                sharpen_amount=1.3,
+                gamma_correction=1.1,
+            ),
         },
         {
             "name": "Focus Enhancement",
-            "params": {
-                "equalize_method": "stretch",
-                "contrast_stretch_percentiles": (5, 95),
-                "color_preservation": "lab",
-                "color_preservation_strength": 0.95,
-                "denoise_type": "bilateral",
-                "denoise_sigma": 0.4,
-                "sharpen": True,
-                "sharpen_amount": 2.0,
-                "gamma_correction": 1.0,
-            },
+            "config": ProcessingConfig(
+                equalize_method="stretch",
+                contrast_stretch_percentiles=(5, 95),
+                color_preservation="lab",
+                color_preservation_strength=0.95,
+                denoise_type="bilateral",
+                denoise_sigma=0.4,
+                sharpen=True,
+                sharpen_amount=2.0,
+                gamma_correction=1.0,
+            ),
         },
     ]
 
@@ -173,22 +178,19 @@ def compare_processing_methods(
 
     for method in methods:
         name = method["name"]
-        params = method["params"]
+        m_config = method["config"].merge({"application_type": application_type})
 
         if output_dir:
-            output_path = os.path.join(
-                output_dir, f"{name.replace(' ', '_').lower()}.jpg"
-            )
+            output_path = os.path.join(output_dir, f"{name.replace(' ', '_').lower()}.jpg")
         else:
             output_path = None
 
         try:
+            m_config.calculate_advanced_metrics = calculate_advanced_metrics
             processed, metrics = process_image(
                 image_path,
                 output_path=output_path,
-                application_type=application_type,
-                calculate_advanced_metrics=calculate_advanced_metrics,
-                **params,
+                config=m_config,
             )
 
             results[name] = {
@@ -197,11 +199,7 @@ def compare_processing_methods(
                 "output_path": output_path,
             }
 
-            if (
-                metrics
-                and "quality_score" in metrics
-                and metrics["quality_score"] > best_score
-            ):
+            if metrics and "quality_score" in metrics and metrics["quality_score"] > best_score:
                 best_score = metrics["quality_score"]
                 best_method = name
 
@@ -225,15 +223,22 @@ def suggest_optimal_params(analysis_results: Dict[str, Any]) -> Dict[str, Any]:
         Dictionary with suggested parameters
     """
     # Extract summary statistics
-    summary = analysis_results["summary"]
+    summary = analysis_results.get("summary", {})
+    total_images = analysis_results.get("total_images", 0)
 
-    # Determine general characteristics of the batch
-    avg_brightness = summary["brightness"].get("avg", 0.5)
-    avg_contrast = summary["contrast"].get("avg", 0.3)
-    avg_noise = summary["noise_level"].get("avg", 0.03)
-    avg_edge_density = summary["edge_density"].get("avg", 0.05)
+    avg_brightness = (
+        summary.get("brightness", {}).get("avg", 0.5) if isinstance(summary, dict) else 0.5
+    )
+    avg_contrast = summary.get("contrast", {}).get("avg", 0.3) if isinstance(summary, dict) else 0.3
+    avg_noise = (
+        summary.get("noise_level", {}).get("avg", 0.03) if isinstance(summary, dict) else 0.03
+    )
+    avg_edge_density = (
+        summary.get("edge_density", {}).get("avg", 0.05) if isinstance(summary, dict) else 0.05
+    )
 
-    is_mostly_color = summary["color_images"] > (analysis_results["total_images"] / 2)
+    color_images = summary.get("color_images", 0) if isinstance(summary, dict) else 0
+    is_mostly_color = color_images > (total_images / 2) if total_images else False
 
     # Start with default parameters
     params = {

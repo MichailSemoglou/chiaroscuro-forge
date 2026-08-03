@@ -2,17 +2,26 @@
 Quality metrics for image processing assessment.
 
 This module provides various perceptual quality metrics for evaluating
-processed images, including SSIM, MS-SSIM, PSNR, feature similarity,
+processed images, including SSIM, MS-SSIM, PSNR, CIEDE2000 color
+difference, LPIPS (learned perceptual similarity), feature similarity,
 and histogram-based comparisons.
 """
 
-from typing import Dict, List, Optional, Tuple
+import logging
+import threading
+from typing import Dict, List, Optional
+
 import numpy as np
-from skimage import color, img_as_float, feature
+from skimage import color, feature, img_as_float
 from skimage.metrics import structural_similarity as ssim_skimage
 from skimage.transform import pyramid_gaussian
-from .validation import validate_array
+
+from .constants import VALID_HISTOGRAM_METHODS
 from .exceptions import ImageProcessingError
+from .validation import validate_array
+
+logger = logging.getLogger(__name__)
+_lpips_lock = threading.Lock()
 
 
 def ssim(img1: np.ndarray, img2: np.ndarray) -> float:
@@ -103,7 +112,10 @@ def ms_ssim(
     # Ensure we have the right number of weights
     if len(weights) != levels:
         weights = weights[:levels]
-        weights = [w / sum(weights) for w in weights]
+        total = sum(weights)
+        weights = (
+            [w / total for w in weights] if total != 0 else [1.0 / len(weights)] * len(weights)
+        )
 
     # Build pyramids
     pyramid1 = list(pyramid_gaussian(img1, max_layer=levels - 1, downscale=2))
@@ -123,8 +135,12 @@ def ms_ssim(
         raise ImageProcessingError("Could not calculate MS-SSIM at any scale")
 
     # Weight and combine
-    weights_used = weights[:len(ms_ssim_values)]
-    weights_normalized = [w / sum(weights_used) for w in weights_used]
+    weights_used = weights[: len(ms_ssim_values)]
+    weights_sum = sum(weights_used)
+    if weights_sum == 0:
+        weights_normalized = [1.0 / len(weights_used)] * len(weights_used)
+    else:
+        weights_normalized = [w / weights_sum for w in weights_used]
 
     return float(sum(w * s for w, s in zip(weights_normalized, ms_ssim_values)))
 
@@ -179,8 +195,11 @@ def feature_similarity(
             hog1 = feature.hog(img1, channel_axis=-1 if img1.ndim == 3 else None)
             hog2 = feature.hog(img2, channel_axis=-1 if img2.ndim == 3 else None)
 
-            # Calculate cosine similarity
-            similarity = np.dot(hog1, hog2) / (np.linalg.norm(hog1) * np.linalg.norm(hog2))
+            norm1 = np.linalg.norm(hog1)
+            norm2 = np.linalg.norm(hog2)
+            if norm1 == 0 or norm2 == 0:
+                return 0.0
+            similarity = np.dot(hog1, hog2) / (norm1 * norm2)
             return float(max(0.0, min(1.0, (similarity + 1) / 2)))
         except Exception as e:
             raise ImageProcessingError(f"HOG feature extraction failed: {e}")
@@ -189,7 +208,7 @@ def feature_similarity(
         # ORB keypoint matching
         try:
             orb = feature.ORB(n_keypoints=500)
-            
+
             orb.detect_and_extract(color.rgb2gray(img1) if img1.ndim == 3 else img1)
             keypoints1 = orb.keypoints
             descriptors1 = orb.descriptors
@@ -203,7 +222,7 @@ def feature_similarity(
 
             # Match descriptors
             matches = feature.match_descriptors(descriptors1, descriptors2, cross_check=True)
-            
+
             if len(keypoints1) == 0 or len(keypoints2) == 0:
                 return 0.0
 
@@ -267,6 +286,9 @@ def histogram_similarity(
     validate_array(img1, "img1")
     validate_array(img2, "img2")
 
+    if method not in VALID_HISTOGRAM_METHODS:
+        raise ImageProcessingError(f"Histogram method must be one of {VALID_HISTOGRAM_METHODS}")
+
     # Convert to float and flatten
     img1_float = img_as_float(img1)
     img2_float = img_as_float(img2)
@@ -283,19 +305,19 @@ def histogram_similarity(
         # Correlation coefficient
         mean1 = np.mean(hist1)
         mean2 = np.mean(hist2)
-        
+
         numerator = np.sum((hist1 - mean1) * (hist2 - mean2))
-        denominator = np.sqrt(np.sum((hist1 - mean1)**2) * np.sum((hist2 - mean2)**2))
-        
+        denominator = np.sqrt(np.sum((hist1 - mean1) ** 2) * np.sum((hist2 - mean2) ** 2))
+
         if denominator == 0:
             return 1.0 if np.allclose(hist1, hist2) else 0.0
-        
+
         return float((numerator / denominator + 1) / 2)
 
     elif method == "chi_square":
         # Chi-square distance (inverted and normalized)
         epsilon = 1e-10
-        chi_square = np.sum((hist1 - hist2)**2 / (hist1 + hist2 + epsilon))
+        chi_square = np.sum((hist1 - hist2) ** 2 / (hist1 + hist2 + epsilon))
         return float(1.0 / (1.0 + chi_square))
 
     elif method == "intersection":
@@ -307,8 +329,77 @@ def histogram_similarity(
         bhattacharyya = -np.log(np.sum(np.sqrt(hist1 * hist2)))
         return float(np.exp(-bhattacharyya))
 
-    else:
-        raise ImageProcessingError(f"Unknown histogram comparison method: {method}")
+
+def lpips_similarity(
+    img1: np.ndarray,
+    img2: np.ndarray,
+) -> float:
+    """
+    Learned Perceptual Image Patch Similarity (LPIPS).
+
+    Computes perceptual distance using deep features from a pretrained
+    AlexNet or VGG network. Requires the optional ``lpips`` package.
+    Falls back to MS-SSIM via ``ms_ssim`` when not installed.
+
+    LPIPS is a distance metric (lower = more similar), correlating with
+    human judgments at r ≈ 0.9 versus SSIM's r ≈ 0.7 (Zhang et al.,
+    CVPR 2018).
+
+    Parameters
+    ----------
+    img1 : np.ndarray
+        First image array (original or reference).
+    img2 : np.ndarray
+        Second image array (processed or comparison).
+
+    Returns
+    -------
+    float
+        Perceptual similarity between 0 and 1 (1 = identical).
+
+    Raises
+    ------
+    ImageProcessingError
+        If input validation fails.
+    """
+    import importlib
+
+    try:
+        importlib.import_module("lpips")
+    except ImportError:
+        logger.debug("lpips not installed, falling back to MS-SSIM")
+        return ms_ssim(img1, img2)
+
+    try:
+        import lpips
+        import torch
+
+        with _lpips_lock:
+            if not hasattr(lpips_similarity, "_lpips_model"):
+                lpips_similarity._lpips_model = lpips.LPIPS(net="alex", verbose=False)
+            loss_fn = lpips_similarity._lpips_model
+
+        t1 = torch.from_numpy(img_as_float(img1).clip(0, 1)).float()
+        t2 = torch.from_numpy(img_as_float(img2).clip(0, 1)).float()
+
+        if t1.ndim == 2:
+            t1 = t1.unsqueeze(0).unsqueeze(0)
+            t2 = t2.unsqueeze(0).unsqueeze(0)
+        else:
+            t1 = t1.permute(2, 0, 1).unsqueeze(0)
+            t2 = t2.permute(2, 0, 1).unsqueeze(0)
+
+        if t1.shape[1] == 1:
+            t1 = t1.repeat(1, 3, 1, 1)
+            t2 = t2.repeat(1, 3, 1, 1)
+
+        with torch.no_grad():
+            distance = loss_fn(t1, t2).item()
+
+        return 1.0 - float(np.clip(distance, 0.0, 1.0))
+    except Exception as exc:
+        logger.debug("LPIPS calculation failed: %s, falling back to MS-SSIM", exc)
+        return ms_ssim(img1, img2)
 
 
 def calculate_perceptual_metrics(
@@ -366,7 +457,8 @@ def calculate_perceptual_metrics(
     if min(original.shape[:2]) >= 32:
         try:
             metrics_dict["ms_ssim"] = ms_ssim(original, processed)
-        except Exception:
+        except Exception as exc:
+            logger.debug("MS-SSIM calculation failed: %s", exc)
             metrics_dict["ms_ssim"] = metrics_dict["ssim"]
     else:
         metrics_dict["ms_ssim"] = metrics_dict["ssim"]
@@ -377,30 +469,36 @@ def calculate_perceptual_metrics(
             metrics_dict["feature_similarity_hog"] = feature_similarity(
                 original, processed, method="hog"
             )
-        except Exception:
-            metrics_dict["feature_similarity_hog"] = 0.0
+        except Exception as exc:
+            logger.debug("HOG feature similarity failed: %s", exc)
 
         try:
             metrics_dict["feature_similarity_canny"] = feature_similarity(
                 original, processed, method="canny"
             )
-        except Exception:
-            metrics_dict["feature_similarity_canny"] = 0.0
+        except Exception as exc:
+            logger.debug("Canny feature similarity failed: %s", exc)
 
         # Histogram similarity
         try:
             metrics_dict["histogram_correlation"] = histogram_similarity(
                 original, processed, method="correlation"
             )
-        except Exception:
-            metrics_dict["histogram_correlation"] = 0.0
+        except Exception as exc:
+            logger.debug("Histogram correlation failed: %s", exc)
 
         try:
             metrics_dict["histogram_intersection"] = histogram_similarity(
                 original, processed, method="intersection"
             )
-        except Exception:
-            metrics_dict["histogram_intersection"] = 0.0
+        except Exception as exc:
+            logger.debug("Histogram intersection failed: %s", exc)
+
+        # LPIPS (learned perceptual similarity)
+        try:
+            metrics_dict["lpips"] = lpips_similarity(original, processed)
+        except Exception as exc:
+            logger.debug("LPIPS calculation failed: %s", exc)
 
         # Color preservation (if color images)
         if original.ndim == 3 and processed.ndim == 3:
@@ -408,16 +506,14 @@ def calculate_perceptual_metrics(
                 orig_lab = color.rgb2lab(img_as_float(original))
                 proc_lab = color.rgb2lab(img_as_float(processed))
 
-                # Color distance in ab plane
-                color_dist = np.sqrt(
-                    (orig_lab[:, :, 1] - proc_lab[:, :, 1])**2 +
-                    (orig_lab[:, :, 2] - proc_lab[:, :, 2])**2
+                from skimage.color import deltaE_ciede2000
+
+                deltae = deltaE_ciede2000(orig_lab, proc_lab)
+                metrics_dict["color_preservation"] = float(
+                    1.0 - np.clip(np.mean(deltae) / 20.0, 0.0, 1.0)
                 )
-                
-                # Normalize to 0-1 (typical ab values range ~-128 to 128)
-                metrics_dict["color_preservation"] = float(1.0 - np.mean(color_dist) / 180.0)
-            except Exception:
-                metrics_dict["color_preservation"] = 1.0
+            except Exception as exc:
+                logger.debug("Color preservation metric failed: %s", exc)
 
     return metrics_dict
 
@@ -456,20 +552,22 @@ def calculate_quality_score(
     # Define weights for different application types
     weights = {
         "general": {
-            "ssim": 0.3,
-            "ms_ssim": 0.2,
+            "ssim": 0.25,
+            "ms_ssim": 0.15,
             "psnr": 0.15,
-            "feature_similarity_hog": 0.15,
+            "lpips": 0.15,
+            "feature_similarity_hog": 0.1,
             "histogram_correlation": 0.1,
             "color_preservation": 0.1,
         },
         "photography": {
-            "ssim": 0.25,
-            "ms_ssim": 0.2,
-            "psnr": 0.1,
-            "feature_similarity_hog": 0.15,
+            "ssim": 0.2,
+            "ms_ssim": 0.1,
+            "psnr": 0.05,
+            "lpips": 0.2,
+            "feature_similarity_hog": 0.1,
             "histogram_correlation": 0.1,
-            "color_preservation": 0.2,
+            "color_preservation": 0.25,
         },
         "medical": {
             "ssim": 0.35,
@@ -488,31 +586,32 @@ def calculate_quality_score(
             "histogram_correlation": 0.05,
         },
         "art": {
-            "ssim": 0.2,
-            "ms_ssim": 0.15,
+            "ssim": 0.15,
+            "ms_ssim": 0.1,
             "psnr": 0.05,
-            "feature_similarity_hog": 0.2,
-            "histogram_correlation": 0.15,
+            "lpips": 0.2,
+            "feature_similarity_hog": 0.15,
+            "histogram_correlation": 0.1,
             "color_preservation": 0.25,
         },
     }
 
     app_weights = weights[application_type]
-    
+
     score = 0.0
     total_weight = 0.0
 
     for metric, weight in app_weights.items():
         if metric in metrics_dict:
             value = metrics_dict[metric]
-            
+
             # Normalize PSNR (typically 20-50 dB, saturate at 50)
             if metric == "psnr":
                 value = min(1.0, max(0.0, (value - 20.0) / 30.0))
-            
+
             # Ensure value is in 0-1 range
             value = max(0.0, min(1.0, value))
-            
+
             score += weight * value
             total_weight += weight
 

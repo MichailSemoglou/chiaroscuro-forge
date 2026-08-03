@@ -1,17 +1,18 @@
-numpy>=1.20.0
+numpy>=1.22.0
 scipy>=1.7.0
-scikit-image>=0.18.0
+scikit-image>=0.20.0
+Pillow>=10.4.0
 
-# Optional GPU acceleration dependencies (Phase 4.1)
+# Optional GPU acceleration dependencies
 # Install based on your hardware:
 # - For NVIDIA GPUs: pip install cupy-cuda11x (or cupy-cuda12x)
 # - For Apple Silicon: Metal is built-in, no extra dependencies
 # - For OpenCL: pip install pyopencl
 
-# Optional REST API dependencies (Phase 4.3)
+# Optional REST API dependencies
 # Install for API functionality:
 # pip install "fastapi[all]" uvicorn
 
-# Property-based testing dependencies (Phase 4.4)
+# Optional property-based testing dependencies
 # Install for advanced testing:
 # pip install hypothesis

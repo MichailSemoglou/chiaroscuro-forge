@@ -1,12 +1,12 @@
 """Tests for the command-line interface module."""
 
+import json
 import os
 import sys
-import json
 import tempfile
 import unittest
-from unittest.mock import patch, MagicMock
 from io import StringIO
+from unittest.mock import MagicMock, patch
 
 from PIL import Image
 
@@ -75,14 +75,17 @@ class TestCLI(unittest.TestCase):
 
     def test_single_image_with_application_type(self):
         """Test processing with specific application type."""
-        with patch("sys.argv", [
-            "cli",
-            self.input_path,
-            "-o",
-            self.output_path,
-            "--application",
-            "photography",
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "cli",
+                self.input_path,
+                "-o",
+                self.output_path,
+                "--application",
+                "photography",
+            ],
+        ):
             result = main()
             self.assertEqual(result, 0)
             self.assertTrue(os.path.exists(self.output_path))
@@ -92,14 +95,17 @@ class TestCLI(unittest.TestCase):
         # Create a test preset
         save_preset("test_cli_preset", {"denoise_sigma": 2.0}, "Test")
 
-        with patch("sys.argv", [
-            "cli",
-            self.input_path,
-            "-o",
-            self.output_path,
-            "--preset",
-            "test_cli_preset",
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "cli",
+                self.input_path,
+                "-o",
+                self.output_path,
+                "--preset",
+                "test_cli_preset",
+            ],
+        ):
             with patch("sys.stdout", new=StringIO()) as fake_out:
                 result = main()
 
@@ -109,14 +115,17 @@ class TestCLI(unittest.TestCase):
 
     def test_single_image_with_invalid_preset(self):
         """Test error with invalid preset."""
-        with patch("sys.argv", [
-            "cli",
-            self.input_path,
-            "-o",
-            self.output_path,
-            "--preset",
-            "nonexistent",
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "cli",
+                self.input_path,
+                "-o",
+                self.output_path,
+                "--preset",
+                "nonexistent",
+            ],
+        ):
             with patch("sys.stdout", new=StringIO()):
                 result = main()
                 self.assertEqual(result, 1)
@@ -137,13 +146,16 @@ class TestCLI(unittest.TestCase):
         """Test comparing different processing methods."""
         compare_dir = os.path.join(self.temp_dir.name, "comparison")
 
-        with patch("sys.argv", [
-            "cli",
-            self.input_path,
-            "--compare",
-            "--compare-dir",
-            compare_dir,
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "cli",
+                self.input_path,
+                "--compare",
+                "--compare-dir",
+                compare_dir,
+            ],
+        ):
             with patch("sys.stdout", new=StringIO()) as fake_out:
                 result = main()
 
@@ -154,16 +166,19 @@ class TestCLI(unittest.TestCase):
 
     def test_save_preset(self):
         """Test saving a preset."""
-        with patch("sys.argv", [
-            "cli",
-            self.input_path,
-            "-o",
-            self.output_path,
-            "--save-preset",
-            "new_preset",
-            "--preset-description",
-            "New test preset",
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "cli",
+                self.input_path,
+                "-o",
+                self.output_path,
+                "--save-preset",
+                "new_preset",
+                "--preset-description",
+                "New test preset",
+            ],
+        ):
             with patch("sys.stdout", new=StringIO()) as fake_out:
                 result = main()
 
@@ -184,15 +199,18 @@ class TestCLI(unittest.TestCase):
 
         pattern = os.path.join(input_dir, "*.jpg")
 
-        with patch("sys.argv", [
-            "cli",
-            pattern,
-            "--batch",
-            "-o",
-            output_dir,
-            "--workers",
-            "1",
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "cli",
+                pattern,
+                "--batch",
+                "-o",
+                output_dir,
+                "--workers",
+                "1",
+            ],
+        ):
             with patch("sys.stdout", new=StringIO()) as fake_out:
                 result = main()
 
@@ -230,14 +248,17 @@ class TestCLI(unittest.TestCase):
 
         pattern = os.path.join(input_dir, "*.jpg")
 
-        with patch("sys.argv", [
-            "cli",
-            pattern,
-            "--batch",
-            "-o",
-            output_dir,
-            "--report",
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "cli",
+                pattern,
+                "--batch",
+                "-o",
+                output_dir,
+                "--report",
+            ],
+        ):
             result = main()
 
             self.assertEqual(result, 0)
@@ -256,25 +277,31 @@ class TestCLI(unittest.TestCase):
         pattern = os.path.join(input_dir, "*.jpg")
 
         # First run
-        with patch("sys.argv", [
-            "cli",
-            pattern,
-            "--batch",
-            "-o",
-            output_dir,
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "cli",
+                pattern,
+                "--batch",
+                "-o",
+                output_dir,
+            ],
+        ):
             result1 = main()
             self.assertEqual(result1, 0)
 
         # Second run with skip existing
-        with patch("sys.argv", [
-            "cli",
-            pattern,
-            "--batch",
-            "-o",
-            output_dir,
-            "--skip-existing",
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "cli",
+                pattern,
+                "--batch",
+                "-o",
+                output_dir,
+                "--skip-existing",
+            ],
+        ):
             with patch("sys.stdout", new=StringIO()) as fake_out:
                 result2 = main()
 
@@ -294,22 +321,26 @@ class TestCLI(unittest.TestCase):
 
         pattern = os.path.join(input_dir, "*.jpg")
 
-        with patch("sys.argv", [
-            "cli",
-            pattern,
-            "--batch",
-            "-o",
-            output_dir,
-            "--log-file",
-            log_file,
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "cli",
+                pattern,
+                "--batch",
+                "-o",
+                output_dir,
+                "--log-file",
+                log_file,
+            ],
+        ):
             result = main()
 
             self.assertEqual(result, 0)
             self.assertTrue(os.path.exists(log_file))
-        
+
         # Close log handlers to release file lock on Windows
         import logging
+
         logger = logging.getLogger("batch_processor")
         for handler in logger.handlers:
             handler.close()
@@ -327,13 +358,16 @@ class TestCLI(unittest.TestCase):
 
         pattern = os.path.join(input_dir, "*.jpg")
 
-        with patch("sys.argv", [
-            "cli",
-            pattern,
-            "--analyze-batch",
-            "-o",
-            output_file,
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "cli",
+                pattern,
+                "--analyze-batch",
+                "-o",
+                output_file,
+            ],
+        ):
             with patch("sys.stdout", new=StringIO()) as fake_out:
                 result = main()
 
@@ -367,12 +401,15 @@ class TestCLI(unittest.TestCase):
 
     def test_error_handling_invalid_file(self):
         """Test error handling with invalid file."""
-        with patch("sys.argv", [
-            "cli",
-            "nonexistent.jpg",
-            "-o",
-            self.output_path,
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "cli",
+                "nonexistent.jpg",
+                "-o",
+                self.output_path,
+            ],
+        ):
             with patch("sys.stdout", new=StringIO()):
                 result = main()
                 self.assertEqual(result, 1)
@@ -380,7 +417,9 @@ class TestCLI(unittest.TestCase):
     def test_unexpected_error_handling(self):
         """Test handling of unexpected errors."""
         with patch("sys.argv", ["cli", self.input_path, "-o", self.output_path]):
-            with patch("chiaroscuro_forge.cli.process_image", side_effect=RuntimeError("Unexpected")):
+            with patch(
+                "chiaroscuro_forge.cli.process_image", side_effect=RuntimeError("Unexpected")
+            ):
                 with patch("sys.stdout", new=StringIO()) as fake_out:
                     result = main()
 

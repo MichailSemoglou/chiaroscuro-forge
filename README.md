@@ -18,11 +18,11 @@ An intelligent image enhancement tool inspired by Renaissance techniques. Featur
 - **Intelligent Enhancement**: Automatically analyzes image characteristics and applies optimal processing parameters
 - **Advanced Color Preservation**: Maintains color fidelity while enhancing contrast and details
 - **Multiple Enhancement Methods**: LAB, RGB, and ratio-based color processing modes
-- **Quality Metrics**: Calculates SSIM, PSNR, MS-SSIM, and other perceptual quality scores
+- **Quality Metrics**: Calculates SSIM, PSNR, MS-SSIM, CIEDE2000 color difference, and LPIPS perceptual similarity
 - **Preset System**: Save and reuse customized enhancement settings
 - **Application Types**: Specialized processing for photography, documents, medical images, and art
 
-### Advanced Features (Phase 4)
+### Advanced Features
 
 - **GPU Acceleration**: CUDA (NVIDIA), OpenCL (cross-platform), and Metal (Apple Silicon) support for compute-intensive operations
 - **REST API**: FastAPI-based HTTP API with authentication, rate limiting, and async job processing
@@ -34,7 +34,7 @@ An intelligent image enhancement tool inspired by Renaissance techniques. Featur
 
 ### Requirements
 
-- Python 3.8+
+- Python 3.9+
 - NumPy
 - SciPy
 - scikit-image
@@ -227,9 +227,9 @@ import requests
 # Create API key
 response = requests.post(
     "http://localhost:8000/api/v1/keys",
-    json={"name": "my-app", "rate_limit": 100}
+    data={"name": "my-app", "rate_limit": "100"}
 )
-api_key = response.json()["key"]
+api_key = response.json()["data"]["api_key"]
 
 # Process an image
 with open("image.jpg", "rb") as f:
@@ -250,23 +250,31 @@ The project is structured around core image processing functions with a focus on
 
 ### Core Modules
 
-- `processing.py`: Main image processing pipeline with customizable parameters
+- `processing.py`: Main image processing pipeline with unified `ProcessingConfig`
+- `pipeline.py`: Stage-based pipeline pattern (resize, denoise, sharpen, contrast, gamma, color preservation)
 - `analysis.py`: Image analysis and automatic parameter detection
-- `metrics.py`: Quality metrics (SSIM, PSNR, MS-SSIM) calculation
+- `metrics.py`: Quality metrics (SSIM, PSNR, MS-SSIM, CIEDE2000, LPIPS)
+- `config.py`: Shared `ProcessingConfig` dataclass for all entry points
+- `validation.py`: Input and output path validation, parameter checks, security guards
 - `batch.py`: Parallel batch processing with progress tracking
-- `pipeline.py`: Clean pipeline pattern for stage-based processing
+- `presets.py`: JSON-based preset save/load system
+- `tiling.py`: Tile-based processing for large images
+- `comparison.py`: Multi-method comparison and optimal parameter suggestion
+- `exceptions.py`: Custom exception hierarchy
+- `constants.py`: Centralized constants and thresholds
 
-### Advanced Modules (Phase 4)
+### Advanced Modules
 
-- `gpu.py`: GPU acceleration with CUDA, OpenCL, and Metal support
-- `api.py`: REST API with FastAPI, authentication, and rate limiting
-- `distributed.py`: Distributed task queue system with multiple backend support
-- `cache.py`: Intelligent caching system for performance optimization
-- `di.py`: Dependency injection container for flexible architecture
+- `gpu.py`: GPU acceleration with CUDA, OpenCL, and Metal support, CPU fallback
+- `api.py`: FastAPI REST API with authentication, rate limiting, and job management
+- `distributed.py`: Task queue system with local/Redis/Celery backend support
+- `optional.py`: Graceful optional-dependency isolation
+- `cache.py`: Intelligent caching for performance optimization
+- `di.py`: Dependency injection container
 
 ### Testing
 
-- 415+ passing tests with 80%+ coverage
+- 425+ passing tests with coverage enforcement
 - Property-based testing with Hypothesis
 - GPU and API integration tests
 - Comprehensive unit and integration test suites
