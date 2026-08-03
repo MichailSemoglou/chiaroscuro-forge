@@ -5,7 +5,7 @@
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/chiaroscuro-forge?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/chiaroscuro-forge)
 [![Python versions](https://img.shields.io/pypi/pyversions/chiaroscuro-forge.svg)](https://pypi.org/project/chiaroscuro-forge/)
 [![License](https://img.shields.io/pypi/l/chiaroscuro-forge.svg)](https://github.com/MichailSemoglou/chiaroscuro-forge/blob/main/LICENSE)
-[![Tests](https://github.com/MichailSemoglou/chiaroscuro-forge/workflows/Tests%20and%20Code%20Quality/badge.svg)](https://github.com/MichailSemoglou/chiaroscuro-forge/actions)
+[![CI](https://github.com/MichailSemoglou/chiaroscuro-forge/actions/workflows/test.yml/badge.svg)](https://github.com/MichailSemoglou/chiaroscuro-forge/actions/workflows/test.yml)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18200572.svg)](https://doi.org/10.5281/zenodo.18200572)
 

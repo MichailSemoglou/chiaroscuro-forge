@@ -7,9 +7,7 @@ Tests cover:
 - Module metadata
 """
 
-import sys
 import unittest
-from importlib import reload
 
 
 class TestPublicAPI(unittest.TestCase):

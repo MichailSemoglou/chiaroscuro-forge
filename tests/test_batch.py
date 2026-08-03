@@ -5,10 +5,8 @@ import logging
 import os
 import tempfile
 import unittest
-from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import patch
 
-import numpy as np
 from PIL import Image
 
 from chiaroscuro_forge.batch import (
@@ -48,7 +46,7 @@ class TestSetupLogger(unittest.TestCase):
 
     def test_logger_clears_existing_handlers(self):
         """Test that logger clears existing handlers."""
-        logger1 = setup_logger()
+        setup_logger()
         logger2 = setup_logger()
         # Should only have one console handler after second setup
         self.assertEqual(len(logger2.handlers), 1)
@@ -228,7 +226,7 @@ class TestBatchProcessImages(unittest.TestCase):
     def test_batch_process_generate_report(self):
         """Test report generation in batch processing."""
         pattern = os.path.join(self.input_dir, "*.jpg")
-        results = batch_process_images(
+        batch_process_images(
             pattern,
             self.output_dir,
             n_workers=1,

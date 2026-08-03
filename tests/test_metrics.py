@@ -8,7 +8,6 @@ histogram similarity, perceptual metrics, and quality score calculation.
 import unittest
 
 import numpy as np
-from skimage import img_as_ubyte, io
 
 from chiaroscuro_forge.exceptions import ImageProcessingError
 from chiaroscuro_forge.metrics import (

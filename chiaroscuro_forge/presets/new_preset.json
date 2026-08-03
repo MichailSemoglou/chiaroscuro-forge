@@ -1,5 +1,32 @@
 {
     "name": "new_preset",
     "description": "New test preset",
-    "params": {}
+    "params": {
+        "application_type": "general",
+        "scale_factor": 1.0,
+        "order": 1,
+        "order_rescale": 1,
+        "order_rotate": 1,
+        "denoise_type": "gaussian",
+        "denoise_sigma": 1.0,
+        "sharpen": true,
+        "sharpen_amount": 1.5,
+        "equalize": true,
+        "equalize_method": "stretch",
+        "clip_limit": 0.03,
+        "clip_limit_kernel_size": 8,
+        "contrast_stretch_percentiles": [
+            2,
+            98
+        ],
+        "gamma_correction": 1.0,
+        "color_preservation": "lab",
+        "color_preservation_strength": 0.7,
+        "calculate_metrics": true,
+        "calculate_advanced_metrics": true,
+        "use_tiling": null,
+        "tile_size": 512,
+        "tile_overlap": 64,
+        "rotation_angle": 0.0
+    }
 }
