@@ -202,7 +202,6 @@ def batch_process_images(
                         input_path,
                         output_path,
                         config=config,
-                        application_type=application_type,
                         logger=logger,
                     )
                 else:
@@ -231,7 +230,6 @@ def batch_process_images(
                         input_path,
                         output_path,
                         config=config,
-                        application_type=application_type,
                     )
                 else:
                     future = executor.submit(

@@ -186,11 +186,11 @@ def compare_processing_methods(
             output_path = None
 
         try:
+            m_config.calculate_advanced_metrics = calculate_advanced_metrics
             processed, metrics = process_image(
                 image_path,
                 output_path=output_path,
                 config=m_config,
-                calculate_advanced_metrics=calculate_advanced_metrics,
             )
 
             results[name] = {
