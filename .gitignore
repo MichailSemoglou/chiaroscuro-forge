@@ -152,6 +152,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+.mypy_report.txt
 .dmypy.json
 dmypy.json
 
@@ -205,3 +206,5 @@ REFERENCES.md
 
 AGENTS.md
 ROADMAP.md
+
+papers/

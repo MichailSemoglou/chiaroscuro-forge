@@ -76,15 +76,17 @@ class ResizeStage(PipelineStage):
 
         original_for_color = context.get("original_for_color")
         if original_for_color is not None:
-            context["original_for_color"] = transform.rescale(
-                original_for_color,
-                scale_factor,
-                anti_aliasing=True,
-                order=order,
-                channel_axis=-1 if original_for_color.ndim == 3 else None,
+            context["original_for_color"] = np.asarray(
+                transform.rescale(
+                    original_for_color,
+                    scale_factor,
+                    anti_aliasing=True,
+                    order=order,
+                    channel_axis=-1 if original_for_color.ndim == 3 else None,
+                )
             )
 
-        return resized_image
+        return np.asarray(resized_image)
 
 
 class RotateStage(PipelineStage):
@@ -110,16 +112,18 @@ class RotateStage(PipelineStage):
 
         original_for_color = context.get("original_for_color")
         if original_for_color is not None:
-            context["original_for_color"] = transform.rotate(
-                original_for_color,
-                angle,
-                order=order,
-                resize=False,
-                preserve_range=False,
-                mode="reflect",
+            context["original_for_color"] = np.asarray(
+                transform.rotate(
+                    original_for_color,
+                    angle,
+                    order=order,
+                    resize=False,
+                    preserve_range=False,
+                    mode="reflect",
+                )
             )
 
-        return rotated
+        return np.asarray(rotated)
 
 
 class DenoiseStage(PipelineStage):
@@ -135,34 +139,40 @@ class DenoiseStage(PipelineStage):
         if denoise_type == "none":
             return image
         elif denoise_type == "gaussian":
-            return filters.gaussian(
-                image, sigma=denoise_sigma, channel_axis=-1 if image.ndim == 3 else None
+            return np.asarray(
+                filters.gaussian(
+                    image, sigma=denoise_sigma, channel_axis=-1 if image.ndim == 3 else None
+                )
             )
         elif denoise_type == "median":
             if image.ndim == 3:
                 result = image.copy()
                 for i in range(image.shape[2]):
                     result[:, :, i] = filters.median(image[:, :, i])
-                return result
-            return filters.median(image)
+                return np.asarray(result)
+            return np.asarray(filters.median(image))
         elif denoise_type == "bilateral":
             # True edge-preserving bilateral filter.
-            # Note: ~10–100× slower than Gaussian. For throughput-sensitive
+            # Note: ~10-100x slower than Gaussian. For throughput-sensitive
             # workloads, consider denoise_type="gaussian" instead.
             from skimage.restoration import denoise_bilateral
 
             if image.ndim == 3:
-                return denoise_bilateral(
+                return np.asarray(
+                    denoise_bilateral(
+                        image,
+                        sigma_color=denoise_sigma,
+                        sigma_spatial=denoise_sigma / 2,
+                        channel_axis=-1,
+                    )
+                )
+            return np.asarray(
+                denoise_bilateral(
                     image,
                     sigma_color=denoise_sigma,
                     sigma_spatial=denoise_sigma / 2,
-                    channel_axis=-1,
+                    channel_axis=None,
                 )
-            return denoise_bilateral(
-                image,
-                sigma_color=denoise_sigma,
-                sigma_spatial=denoise_sigma / 2,
-                channel_axis=None,
             )
         else:
             raise ImageProcessingError(f"Unknown denoise type: {denoise_type}")
@@ -182,7 +192,7 @@ class SharpenStage(PipelineStage):
         blurred = filters.gaussian(image, sigma=0.5, channel_axis=-1 if image.ndim == 3 else None)
         highpass = image - blurred
         sharpened = image + sharpen_amount * highpass
-        return np.clip(sharpened, 0, 1)
+        return np.asarray(np.clip(sharpened, 0, 1))
 
 
 class ContrastStage(PipelineStage):
@@ -216,29 +226,29 @@ class ContrastStage(PipelineStage):
             # Grayscale
             enhanced = self._apply_method(image, equalize_method, context)
 
-        return np.clip(enhanced, 0, 1)
+        return np.asarray(np.clip(enhanced, 0, 1))
 
     def _apply_method(
         self, channel: np.ndarray, method: str, context: Dict[str, Any]
     ) -> np.ndarray:
         """Apply specific contrast enhancement method."""
         if method == "standard":
-            return exposure.equalize_hist(channel)
+            return np.asarray(exposure.equalize_hist(channel))
         elif method == "clahe":
             clip_limit = context.get("clip_limit", 0.03)
             kernel_size = context.get("clip_limit_kernel_size", 8)
-            return exposure.equalize_adapthist(
-                channel, kernel_size=kernel_size, clip_limit=clip_limit
+            return np.asarray(
+                exposure.equalize_adapthist(channel, kernel_size=kernel_size, clip_limit=clip_limit)
             )
         elif method == "stretch":
             p_low, p_high = context.get("contrast_stretch_percentiles", (2, 98))
             p_low_val, p_high_val = np.percentile(channel, [p_low, p_high])
-            return exposure.rescale_intensity(channel, in_range=(p_low_val, p_high_val))
+            return np.asarray(exposure.rescale_intensity(channel, in_range=(p_low_val, p_high_val)))
         elif method == "adaptive_gamma":
             # Adaptive gamma based on mean luminance
             mean_val = np.mean(channel)
             gamma = 1.0 if mean_val > 0.5 else 0.5 + mean_val
-            return exposure.adjust_gamma(channel, gamma)
+            return np.asarray(exposure.adjust_gamma(channel, gamma))
         else:
             raise ImageProcessingError(f"Unknown equalize method: {method}")
 
@@ -253,7 +263,7 @@ class GammaCorrectionStage(PipelineStage):
         gamma = context.get("gamma_correction", 1.0)
         if gamma == 1.0:
             return image
-        return exposure.adjust_gamma(image, gamma)
+        return np.asarray(exposure.adjust_gamma(image, gamma))
 
 
 class ColorPreservationStage(PipelineStage):
@@ -298,7 +308,7 @@ class ColorPreservationStage(PipelineStage):
             strength * lab_original[:, :, 2] + (1 - strength) * lab_enhanced[:, :, 2]
         )
 
-        return color.lab2rgb(lab_result)
+        return np.asarray(color.lab2rgb(lab_result))
 
     def _preserve_ratio(
         self, enhanced: np.ndarray, original: np.ndarray, strength: float
@@ -311,13 +321,13 @@ class ColorPreservationStage(PipelineStage):
         enh_intensity = np.mean(enhanced, axis=2, keepdims=True)
 
         reconstructed = orig_ratios * enh_intensity
-        return np.clip(strength * reconstructed + (1 - strength) * enhanced, 0, 1)
+        return np.asarray(np.clip(strength * reconstructed + (1 - strength) * enhanced, 0, 1))
 
     def _preserve_rgb(
         self, enhanced: np.ndarray, original: np.ndarray, strength: float
     ) -> np.ndarray:
         """Simple RGB blending."""
-        return np.clip(strength * original + (1 - strength) * enhanced, 0, 1)
+        return np.asarray(np.clip(strength * original + (1 - strength) * enhanced, 0, 1))
 
 
 class ImageProcessingPipeline:

@@ -16,8 +16,8 @@
         "clip_limit": 0.03,
         "clip_limit_kernel_size": 8,
         "contrast_stretch_percentiles": [
-            2,
-            98
+            2.0,
+            98.0
         ],
         "gamma_correction": 1.0,
         "color_preservation": "lab",

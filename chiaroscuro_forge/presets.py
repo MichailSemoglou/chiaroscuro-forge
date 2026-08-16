@@ -83,7 +83,8 @@ def load_preset(preset_name: str) -> Dict[str, Any]:
         if "name" not in preset_data or "params" not in preset_data:
             raise ImageProcessingError("Invalid preset format: missing 'name' or 'params' fields")
 
-        return preset_data["params"]
+        params: Dict[str, Any] = preset_data["params"]
+        return params
     except json.JSONDecodeError as e:
         raise ImageProcessingError(f"Failed to parse preset file: {e}")
     except Exception as e:

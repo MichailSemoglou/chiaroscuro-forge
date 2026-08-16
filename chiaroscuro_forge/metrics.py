@@ -9,12 +9,13 @@ and histogram-based comparisons.
 
 import logging
 import threading
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
-from skimage import color, feature, img_as_float
+from skimage import color, feature
 from skimage.metrics import structural_similarity as ssim_skimage
 from skimage.transform import pyramid_gaussian
+from skimage.util import img_as_float
 
 from .constants import VALID_HISTOGRAM_METHODS
 from .exceptions import ImageProcessingError
@@ -22,6 +23,7 @@ from .validation import validate_array
 
 logger = logging.getLogger(__name__)
 _lpips_lock = threading.Lock()
+_lpips_model: Optional[Any] = None
 
 
 def ssim(img1: np.ndarray, img2: np.ndarray) -> float:
@@ -289,6 +291,9 @@ def histogram_similarity(
     if method not in VALID_HISTOGRAM_METHODS:
         raise ImageProcessingError(f"Histogram method must be one of {VALID_HISTOGRAM_METHODS}")
 
+    if method == "bhattacharyya":
+        pass
+
     # Convert to float and flatten
     img1_float = img_as_float(img1)
     img2_float = img_as_float(img2)
@@ -329,6 +334,8 @@ def histogram_similarity(
         bhattacharyya = -np.log(np.sum(np.sqrt(hist1 * hist2)))
         return float(np.exp(-bhattacharyya))
 
+    raise ImageProcessingError(f"Histogram method must be one of {VALID_HISTOGRAM_METHODS}")
+
 
 def lpips_similarity(
     img1: np.ndarray,
@@ -362,6 +369,8 @@ def lpips_similarity(
     ImageProcessingError
         If input validation fails.
     """
+    global _lpips_model
+
     import importlib
 
     try:
@@ -375,9 +384,9 @@ def lpips_similarity(
         import torch
 
         with _lpips_lock:
-            if not hasattr(lpips_similarity, "_lpips_model"):
-                lpips_similarity._lpips_model = lpips.LPIPS(net="alex", verbose=False)
-            loss_fn = lpips_similarity._lpips_model
+            if _lpips_model is None:
+                _lpips_model = lpips.LPIPS(net="alex", verbose=False)
+            loss_fn = _lpips_model
 
         t1 = torch.from_numpy(img_as_float(img1).clip(0, 1)).float()
         t2 = torch.from_numpy(img_as_float(img2).clip(0, 1)).float()

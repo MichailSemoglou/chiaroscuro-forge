@@ -5,6 +5,13 @@ All notable changes to Chiaroscuro Forge are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.1] — 2026-08-16
+
+### Fixed
+
+- Release metadata update for PyPI publishing compatibility
+- CI publication metadata support updated for the current GitHub Actions platform
+
 ## [2.0.0] — 2026-08-03
 
 ### Added

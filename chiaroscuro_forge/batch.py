@@ -69,7 +69,7 @@ def _process_single_image_wrapper(
 def _process_single_image(
     input_path: str,
     output_path: str,
-    params: Dict[str, Any] = None,
+    params: Optional[Dict[str, Any]] = None,
     application_type: str = "general",
     config=None,
     logger=None,
@@ -182,13 +182,14 @@ def batch_process_images(
     logger.info(f"Preparing to process {len(tasks)} images with {n_workers} workers")
 
     # Initialize results
-    results = {
+    file_results: Dict[str, Any] = {}
+    results: Dict[str, Any] = {
         "successful": 0,
         "failed": 0,
         "skipped": len(input_files) - len(tasks),
         "total": len(input_files),
         "processing_time": 0,
-        "files": {},
+        "files": file_results,
     }
 
     # Process images in parallel
@@ -223,7 +224,7 @@ def batch_process_images(
     else:
         # Parallel processing
         with ProcessPoolExecutor(max_workers=n_workers) as executor:
-            futures = {}
+            futures: Dict[Any, str] = {}
             for input_path, output_path in tasks:
                 if use_config:
                     future = executor.submit(
@@ -301,7 +302,7 @@ def analyze_batch(input_pattern: str, output_file: Optional[str] = None) -> Dict
     if not input_files:
         raise ImageProcessingError(f"No files found matching pattern: {input_pattern}")
 
-    results = {
+    results: Dict[str, Any] = {
         "total_images": len(input_files),
         "analyses": {},
         "summary": {
@@ -321,14 +322,16 @@ def analyze_batch(input_pattern: str, output_file: Optional[str] = None) -> Dict
 
             # Update summary statistics
             chars = analysis["characteristics"]
+            aggregate_summary: Dict[str, Any] = results["summary"]
             if chars["is_color"]:
-                results["summary"]["color_images"] += 1
+                aggregate_summary["color_images"] += 1
 
             for metric in ["brightness", "contrast", "noise_level", "edge_density"]:
                 value = chars[metric]
-                results["summary"][metric]["min"] = min(results["summary"][metric]["min"], value)
-                results["summary"][metric]["max"] = max(results["summary"][metric]["max"], value)
-                results["summary"][metric]["sum"] += value
+                metric_stats: Dict[str, Any] = aggregate_summary[metric]
+                metric_stats["min"] = min(metric_stats["min"], value)
+                metric_stats["max"] = max(metric_stats["max"], value)
+                metric_stats["sum"] += value
 
         except Exception as e:
             results["analyses"][input_path] = {"error": str(e)}
@@ -339,10 +342,10 @@ def analyze_batch(input_pattern: str, output_file: Optional[str] = None) -> Dict
     )
 
     if successful_analyses > 0:
+        summary_stats: Dict[str, Any] = results["summary"]
         for metric in ["brightness", "contrast", "noise_level", "edge_density"]:
-            results["summary"][metric]["avg"] = (
-                results["summary"][metric]["sum"] / successful_analyses
-            )
+            metric_averages: Dict[str, Any] = summary_stats[metric]
+            metric_averages["avg"] = metric_averages["sum"] / successful_analyses
 
     # Save output if requested
     if output_file:

@@ -71,16 +71,20 @@ class GPUCapabilities:
     """
 
     _instance: Optional["GPUCapabilities"] = None
-    _lock = threading.Lock()
+    _lock: threading.Lock = threading.Lock()
+    _detected: bool
+    _gpu_info: Optional[GPUInfo]
+    _backend_module: Any
 
     def __new__(cls):
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
-                    cls._instance = super().__new__(cls)
-                    cls._instance._detected = False
-                    cls._instance._gpu_info: Optional[GPUInfo] = None
-                    cls._instance._backend_module: Any = None
+                    instance = super().__new__(cls)
+                    instance._detected = False
+                    instance._gpu_info = None
+                    instance._backend_module = None
+                    cls._instance = instance
         return cls._instance
 
     def _ensure_detected(self) -> None:
@@ -177,12 +181,18 @@ class GPUCapabilities:
     @property
     def info(self) -> GPUInfo:
         self._ensure_detected()
-        return self._gpu_info
+        gpu_info = self._gpu_info
+        if gpu_info is None:
+            raise RuntimeError("GPU capabilities were not detected")
+        return gpu_info
 
     @property
     def backend(self) -> GPUBackend:
         self._ensure_detected()
-        return self._gpu_info.backend
+        gpu_info = self._gpu_info
+        if gpu_info is None:
+            raise RuntimeError("GPU capabilities were not detected")
+        return gpu_info.backend
 
     @property
     def backend_module(self) -> Optional[Any]:
@@ -191,7 +201,8 @@ class GPUCapabilities:
 
     def is_available(self) -> bool:
         self._ensure_detected()
-        return self._gpu_info.backend != GPUBackend.NONE
+        gpu_info = self._gpu_info
+        return gpu_info is not None and gpu_info.backend != GPUBackend.NONE
 
 
 def _get_capabilities() -> GPUCapabilities:
@@ -235,7 +246,7 @@ def get_gpu_backend() -> GPUBackend:
 def _image_too_large_for_gpu(image: np.ndarray) -> bool:
     """Check whether an image exceeds the GPU memory safety threshold."""
     pixel_count = image.shape[0] * image.shape[1] if image.ndim >= 2 else image.size
-    return pixel_count > MAX_GPU_PIXELS
+    return bool(pixel_count > MAX_GPU_PIXELS)
 
 
 def safe_gpu(
@@ -366,7 +377,7 @@ class GPUContext:
         if self.backend == GPUBackend.CUDA:
             result = self.backend_module.asnumpy(gpu_array)
             logger.debug("CUDA→CPU transfer: %s", result.shape)
-            return result
+            return np.asarray(result)
         elif self.backend == GPUBackend.OPENCL:
             import pyopencl as cl
 
@@ -378,8 +389,8 @@ class GPUContext:
                 )
             result = np.empty(shape, dtype=dtype)
             cl.enqueue_copy(self._opencl_queue, result, gpu_array)
-            return result
-        return gpu_array if isinstance(gpu_array, np.ndarray) else np.asarray(gpu_array)
+            return np.asarray(result)
+        return np.asarray(gpu_array) if not isinstance(gpu_array, np.ndarray) else gpu_array
 
     def gaussian_blur(self, image: np.ndarray, sigma: float) -> np.ndarray:
         if self.backend == GPUBackend.CUDA:
@@ -387,10 +398,10 @@ class GPUContext:
 
             gpu_img = self.to_gpu(image)
             gpu_result = gaussian_filter(gpu_img, sigma=sigma)
-            return self.to_cpu(gpu_result)
+            return np.asarray(self.to_cpu(gpu_result))
         from scipy.ndimage import gaussian_filter
 
-        return gaussian_filter(image, sigma=sigma)
+        return np.asarray(gaussian_filter(image, sigma=sigma))
 
     def sobel_filter(self, image: np.ndarray) -> np.ndarray:
         if self.backend == GPUBackend.CUDA:
@@ -400,12 +411,12 @@ class GPUContext:
             sx = sobel(gpu_img, axis=0)
             sy = sobel(gpu_img, axis=1)
             gpu_result = self.backend_module.hypot(sx, sy)
-            return self.to_cpu(gpu_result)
+            return np.asarray(self.to_cpu(gpu_result))
         from scipy.ndimage import sobel
 
         sx = sobel(image, axis=0)
         sy = sobel(image, axis=1)
-        return np.hypot(sx, sy)
+        return np.asarray(np.hypot(sx, sy))
 
 
 @dataclass
