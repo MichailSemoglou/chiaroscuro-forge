@@ -152,7 +152,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
-.dmypy.json
+.mypy_report.txt
 dmypy.json
 
 # Pyre type checker
@@ -205,3 +205,5 @@ REFERENCES.md
 
 AGENTS.md
 ROADMAP.md
+
+papers/

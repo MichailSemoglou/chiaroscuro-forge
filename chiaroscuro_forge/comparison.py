@@ -48,7 +48,7 @@ def compare_processing_methods(
                     f"Failed to create output directory: {type(e).__name__}"
                 ) from e
 
-    methods = [
+    methods: list[dict[str, Any]] = [
         {
             "name": "Standard Equalization (HSV)",
             "config": ProcessingConfig(
@@ -172,13 +172,16 @@ def compare_processing_methods(
         },
     ]
 
-    results = {}
-    best_method = None
+    results: Dict[str, Dict[str, Any]] = {}
+    best_method: Optional[str] = None
     best_score = -1.0
 
     for method in methods:
-        name = method["name"]
-        m_config = method["config"].merge({"application_type": application_type})
+        name = str(method["name"])
+        config_value = method["config"]
+        if not isinstance(config_value, ProcessingConfig):
+            raise ImageProcessingError("Comparison method configuration is invalid")
+        m_config = config_value.merge({"application_type": application_type})
 
         if output_dir:
             output_path = os.path.join(output_dir, f"{name.replace(' ', '_').lower()}.jpg")
@@ -186,7 +189,7 @@ def compare_processing_methods(
             output_path = None
 
         try:
-            m_config.calculate_advanced_metrics = calculate_advanced_metrics
+            m_config = m_config.merge({"calculate_advanced_metrics": calculate_advanced_metrics})
             processed, metrics = process_image(
                 image_path,
                 output_path=output_path,
@@ -200,8 +203,11 @@ def compare_processing_methods(
             }
 
             if metrics and "quality_score" in metrics and metrics["quality_score"] > best_score:
-                best_score = metrics["quality_score"]
-                best_method = name
+                quality_score = metrics["quality_score"]
+                if isinstance(quality_score, (int, float)):
+                    if float(quality_score) > best_score:
+                        best_score = float(quality_score)
+                        best_method = name
 
         except Exception as e:
             results[name] = {"error": str(e)}

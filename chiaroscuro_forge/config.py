@@ -91,7 +91,7 @@ class ProcessingConfig:
     equalize_method: str = "stretch"
     clip_limit: float = 0.03
     clip_limit_kernel_size: int = 8
-    contrast_stretch_percentiles: Tuple[int, int] = (2, 98)
+    contrast_stretch_percentiles: Tuple[float, float] = (2.0, 98.0)
 
     gamma_correction: float = 1.0
 

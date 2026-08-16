@@ -9,7 +9,8 @@ import os
 from typing import Dict, Optional, Tuple
 
 import numpy as np
-from skimage import img_as_float, img_as_ubyte, io, transform
+from skimage import io, transform
+from skimage.util import img_as_float, img_as_ubyte
 
 from .config import ProcessingConfig
 from .constants import (
@@ -41,7 +42,7 @@ def process_image(
     equalize_method: str = "stretch",
     clip_limit: float = 0.03,
     clip_limit_kernel_size: int = 8,
-    contrast_stretch_percentiles: Tuple[int, int] = (2, 98),
+    contrast_stretch_percentiles: Tuple[float, float] = (2.0, 98.0),
     gamma_correction: float = 1.0,
     color_preservation: str = "lab",
     color_preservation_strength: float = 0.7,

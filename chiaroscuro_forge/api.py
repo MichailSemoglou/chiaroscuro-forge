@@ -44,8 +44,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from PIL import Image
-from skimage import img_as_ubyte as _ubyte
 from skimage import io as skio
+from skimage.util import img_as_ubyte as _ubyte
 
 from .config import ProcessingConfig
 from .constants import MAX_DIMENSION, MAX_FILE_SIZE_MB, MAX_IMAGE_PIXELS
@@ -136,29 +136,12 @@ if FASTAPI_AVAILABLE:
         data: Optional[HealthInfo] = None
 
 else:
-    ProcessingParams = None  # type: ignore
-    JobStatus = None  # type: ignore
-    JobInfo = None  # type: ignore
-    APIResponse = None  # type: ignore
-
-    class HealthInfo:
-        def __init__(
-            self,
-            status: str,
-            timestamp: datetime,
-            jobs: Dict[str, int],
-            uptime_seconds: float,
-        ):
-            self.status = status
-            self.timestamp = timestamp
-            self.jobs = jobs
-            self.uptime_seconds = uptime_seconds
-
-    class HealthResponse:
-        def __init__(self, success: bool, message: str, data: Optional[HealthInfo] = None):
-            self.success = success
-            self.message = message
-            self.data = data
+    ProcessingParams = None  # type: ignore[assignment,misc]
+    JobStatus = None  # type: ignore[assignment,misc]
+    JobInfo = None  # type: ignore[assignment,misc]
+    APIResponse = None  # type: ignore[assignment,misc]
+    HealthInfo = None  # type: ignore[assignment,misc]
+    HealthResponse = None  # type: ignore[assignment,misc]
 
 
 JOB_TTL_HOURS = 24
@@ -359,8 +342,9 @@ class JobManager:
             return counts
 
     @property
+    @property
     def uptime_seconds(self) -> float:
-        return (datetime.now() - self._start_time).total_seconds()
+        return float((datetime.now() - self._start_time).total_seconds())
 
 
 # Global managers (always available)
@@ -699,7 +683,8 @@ if FASTAPI_AVAILABLE:
                 )
             finally:
                 try:
-                    os.unlink(input_path)
+                    if input_path is not None:
+                        os.unlink(input_path)
                 except OSError:
                     pass
 

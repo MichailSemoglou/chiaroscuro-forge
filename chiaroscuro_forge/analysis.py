@@ -8,11 +8,14 @@ comprehensive statistics to help determine optimal processing parameters.
 from typing import Any, Dict, Union
 
 import numpy as np
-from skimage import color, feature, filters, img_as_float, img_as_ubyte, io
+from skimage import color, feature, filters, io
+from skimage.util import img_as_float
 
 from .cache import cached_image_stats
 from .exceptions import ImageProcessingError
 from .validation import _validate_image_path, validate_array
+
+rank = filters.rank  # type: ignore[attr-defined]
 
 
 @cached_image_stats(ttl=3600)  # Cache for 1 hour
@@ -91,10 +94,10 @@ def analyze_image_characteristics(image_path: str) -> Dict[str, Any]:
             else:
                 gray_image = image
 
-            noise_estimator = filters.rank.windowed_variance(
-                img_as_ubyte(gray_image), filters.rank.square(5)
+            local_std = np.std(
+                np.abs(gray_image - filters.gaussian(gray_image, sigma=1.0))
             )
-            noise_level = np.mean(noise_estimator) / 255.0
+            noise_level = float(local_std)
         except Exception:
             if is_color:
                 blue_channel = image[:, :, 2]
@@ -127,7 +130,9 @@ def analyze_image_characteristics(image_path: str) -> Dict[str, Any]:
             "texture_level": texture_level,
         }
 
-        suggested_params = {}
+        suggested_params: Dict[str, Any] = {}
+
+        suggested_application = "general"
 
         if noise_level > 0.05:
             suggested_params["denoise_type"] = "bilateral" if edge_density > 0.05 else "gaussian"

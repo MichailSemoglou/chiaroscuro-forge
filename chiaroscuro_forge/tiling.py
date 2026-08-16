@@ -245,7 +245,7 @@ def stitch_tiles(
 
 def process_image_tiled(
     image: np.ndarray,
-    process_fn: Callable[[np.ndarray, Optional[Dict[str, Any]]], np.ndarray],
+    process_fn: Callable[..., np.ndarray],
     tile_size: int = 512,
     overlap: int = 64,
     process_fn_kwargs: Optional[Dict[str, Any]] = None,

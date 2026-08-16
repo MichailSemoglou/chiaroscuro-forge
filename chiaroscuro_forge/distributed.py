@@ -506,7 +506,8 @@ class LocalQueue(TaskQueue):
         with self._lock:
             if task_id not in self.futures:
                 return False
-            cancelled = self.futures[task_id].cancel()
+            future = self.futures[task_id]
+            cancelled = future.cancel()
             if cancelled:
                 result = self.results.get(task_id)
                 if result and not self._is_terminal_status(result.status):
@@ -514,7 +515,7 @@ class LocalQueue(TaskQueue):
                     result.completed_at = datetime.now()
             if cancelled:
                 logger.info("Task %s cancelled", task_id)
-            return cancelled
+            return bool(cancelled)
 
     def get_health(self) -> QueueHealth:
         health = QueueHealth(worker_count=self.worker_count)
@@ -666,18 +667,19 @@ class DistributedBatchProcessor:
         return results
 
     def aggregate_statistics(self, results: List[TaskResult]) -> Dict[str, Any]:
-        stats = {
+        stats: Dict[str, Any] = {
             "total_tasks": len(results),
             "successful": sum(1 for r in results if r.status == TaskStatus.COMPLETED),
             "failed": sum(1 for r in results if r.status == TaskStatus.FAILED),
             "cancelled": sum(1 for r in results if r.status == TaskStatus.CANCELLED),
-            "total_duration": sum(r.duration or 0 for r in results),
+            "total_duration": sum(float(r.duration or 0.0) for r in results),
             "avg_duration": 0.0,
             "errors": [],
         }
-        completed = [r for r in results if r.status == TaskStatus.COMPLETED and r.duration]
+        completed = [r for r in results if r.status == TaskStatus.COMPLETED and r.duration is not None]
         if completed:
-            stats["avg_duration"] = sum(r.duration for r in completed) / len(completed)
+            duration_values = [float(r.duration) for r in completed if r.duration is not None]
+            stats["avg_duration"] = sum(duration_values) / len(duration_values)
         for result in results:
             if result.status == TaskStatus.FAILED:
                 stats["errors"].append(

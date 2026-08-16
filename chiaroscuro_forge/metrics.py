@@ -12,9 +12,10 @@ import threading
 from typing import Dict, List, Optional
 
 import numpy as np
-from skimage import color, feature, img_as_float
+from skimage import color, feature
 from skimage.metrics import structural_similarity as ssim_skimage
 from skimage.transform import pyramid_gaussian
+from skimage.util import img_as_float
 
 from .constants import VALID_HISTOGRAM_METHODS
 from .exceptions import ImageProcessingError
@@ -289,6 +290,9 @@ def histogram_similarity(
     if method not in VALID_HISTOGRAM_METHODS:
         raise ImageProcessingError(f"Histogram method must be one of {VALID_HISTOGRAM_METHODS}")
 
+    if method == "bhattacharyya":
+        pass
+
     # Convert to float and flatten
     img1_float = img_as_float(img1)
     img2_float = img_as_float(img2)
@@ -328,6 +332,8 @@ def histogram_similarity(
         # Bhattacharyya distance (converted to similarity)
         bhattacharyya = -np.log(np.sum(np.sqrt(hist1 * hist2)))
         return float(np.exp(-bhattacharyya))
+
+    raise ImageProcessingError(f"Histogram method must be one of {VALID_HISTOGRAM_METHODS}")
 
 
 def lpips_similarity(
@@ -375,9 +381,10 @@ def lpips_similarity(
         import torch
 
         with _lpips_lock:
-            if not hasattr(lpips_similarity, "_lpips_model"):
-                lpips_similarity._lpips_model = lpips.LPIPS(net="alex", verbose=False)
-            loss_fn = lpips_similarity._lpips_model
+            loss_fn = getattr(lpips_similarity, "_lpips_model", None)
+            if loss_fn is None:
+                loss_fn = lpips.LPIPS(net="alex", verbose=False)
+                setattr(lpips_similarity, "_lpips_model", loss_fn)
 
         t1 = torch.from_numpy(img_as_float(img1).clip(0, 1)).float()
         t2 = torch.from_numpy(img_as_float(img2).clip(0, 1)).float()

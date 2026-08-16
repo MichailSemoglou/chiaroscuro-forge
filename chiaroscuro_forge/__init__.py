@@ -28,10 +28,12 @@ For more examples, see the documentation at:
 https://github.com/MichailSemoglou/chiaroscuro-forge
 """
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 __author__ = "Michail Semoglou"
 __email__ = "m.semoglou@tongji.edu.cn"
 __license__ = "MIT"
+
+from typing import Any
 
 from chiaroscuro_forge.analysis import (
     analyze_image_characteristics,
@@ -81,25 +83,37 @@ from chiaroscuro_forge.tiling import (
     should_use_tiling,
 )
 
+app: Any
+api_key_manager: Any
+job_manager: Any
+run_server: Any
+APIJobStatus: Any
+JobInfo: Any
+APIResponse: Any
+ProcessingParams: Any
+
 # Optional API module - only available if fastapi is installed
 try:
-    from chiaroscuro_forge.api import (
-        APIResponse,
-        JobInfo,
-    )
-    from chiaroscuro_forge.api import JobStatus as APIJobStatus
-    from chiaroscuro_forge.api import (
-        ProcessingParams,
-        api_key_manager,
-        app,
-        job_manager,
-        run_server,
-    )
+    from chiaroscuro_forge.api import APIResponse as _APIResponse
+    from chiaroscuro_forge.api import JobInfo as _JobInfo
+    from chiaroscuro_forge.api import JobStatus as _APIJobStatus
+    from chiaroscuro_forge.api import ProcessingParams as _ProcessingParams
+    from chiaroscuro_forge.api import api_key_manager as _api_key_manager
+    from chiaroscuro_forge.api import app as _app
+    from chiaroscuro_forge.api import job_manager as _job_manager
+    from chiaroscuro_forge.api import run_server as _run_server
 
+    app = _app
+    api_key_manager = _api_key_manager
+    job_manager = _job_manager
+    run_server = _run_server
+    APIJobStatus = _APIJobStatus
+    JobInfo = _JobInfo
+    APIResponse = _APIResponse
+    ProcessingParams = _ProcessingParams
     _api_available = True
 except ImportError:
     _api_available = False
-    # Provide placeholder None values for optional API components
     app = None
     api_key_manager = None
     job_manager = None
