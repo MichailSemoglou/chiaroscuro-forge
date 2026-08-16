@@ -94,9 +94,7 @@ def analyze_image_characteristics(image_path: str) -> Dict[str, Any]:
             else:
                 gray_image = image
 
-            local_std = np.std(
-                np.abs(gray_image - filters.gaussian(gray_image, sigma=1.0))
-            )
+            local_std = np.std(np.abs(gray_image - filters.gaussian(gray_image, sigma=1.0)))
             noise_level = float(local_std)
         except Exception:
             if is_color:

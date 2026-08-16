@@ -676,7 +676,9 @@ class DistributedBatchProcessor:
             "avg_duration": 0.0,
             "errors": [],
         }
-        completed = [r for r in results if r.status == TaskStatus.COMPLETED and r.duration is not None]
+        completed = [
+            r for r in results if r.status == TaskStatus.COMPLETED and r.duration is not None
+        ]
         if completed:
             duration_values = [float(r.duration) for r in completed if r.duration is not None]
             stats["avg_duration"] = sum(duration_values) / len(duration_values)

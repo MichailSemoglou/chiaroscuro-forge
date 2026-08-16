@@ -238,16 +238,12 @@ class ContrastStage(PipelineStage):
             clip_limit = context.get("clip_limit", 0.03)
             kernel_size = context.get("clip_limit_kernel_size", 8)
             return np.asarray(
-                exposure.equalize_adapthist(
-                    channel, kernel_size=kernel_size, clip_limit=clip_limit
-                )
+                exposure.equalize_adapthist(channel, kernel_size=kernel_size, clip_limit=clip_limit)
             )
         elif method == "stretch":
             p_low, p_high = context.get("contrast_stretch_percentiles", (2, 98))
             p_low_val, p_high_val = np.percentile(channel, [p_low, p_high])
-            return np.asarray(
-                exposure.rescale_intensity(channel, in_range=(p_low_val, p_high_val))
-            )
+            return np.asarray(exposure.rescale_intensity(channel, in_range=(p_low_val, p_high_val)))
         elif method == "adaptive_gamma":
             # Adaptive gamma based on mean luminance
             mean_val = np.mean(channel)
