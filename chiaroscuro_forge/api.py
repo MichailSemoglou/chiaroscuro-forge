@@ -342,7 +342,6 @@ class JobManager:
             return counts
 
     @property
-    @property
     def uptime_seconds(self) -> float:
         return float((datetime.now() - self._start_time).total_seconds())
 

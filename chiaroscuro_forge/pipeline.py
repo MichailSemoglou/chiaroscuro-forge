@@ -153,7 +153,7 @@ class DenoiseStage(PipelineStage):
             return np.asarray(filters.median(image))
         elif denoise_type == "bilateral":
             # True edge-preserving bilateral filter.
-            # Note: ~10–100× slower than Gaussian. For throughput-sensitive
+            # Note: ~10-100x slower than Gaussian. For throughput-sensitive
             # workloads, consider denoise_type="gaussian" instead.
             from skimage.restoration import denoise_bilateral
 

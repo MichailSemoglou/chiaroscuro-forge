@@ -11,6 +11,7 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 from skimage import io
@@ -151,6 +152,22 @@ class TestCompareProcessingMethods(unittest.TestCase):
                 metrics = result["metrics"]
                 if metrics:  # Some might be None if metrics calculation disabled
                     self.assertIn("quality_score", metrics)
+
+    def test_compare_methods_skips_nonnumeric_quality_scores(self):
+        """Nonnumeric scores should not turn successful processing into errors."""
+        call_count = 0
+
+        def process_with_mixed_scores(*args, **kwargs):
+            nonlocal call_count
+            quality_score = "invalid" if call_count == 0 else "0.75"
+            call_count += 1
+            return np.zeros((2, 2, 3)), {"quality_score": quality_score}
+
+        with patch("chiaroscuro_forge.comparison.process_image", process_with_mixed_scores):
+            results = compare_processing_methods(self.test_image_path)
+
+        self.assertNotIn("error", results["Standard Equalization (HSV)"])
+        self.assertEqual(results["best_method"]["score"], 0.75)
 
 
 class TestSuggestOptimalParams(unittest.TestCase):

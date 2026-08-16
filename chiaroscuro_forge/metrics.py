@@ -9,7 +9,7 @@ and histogram-based comparisons.
 
 import logging
 import threading
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 from skimage import color, feature
@@ -23,6 +23,7 @@ from .validation import validate_array
 
 logger = logging.getLogger(__name__)
 _lpips_lock = threading.Lock()
+_lpips_model: Optional[Any] = None
 
 
 def ssim(img1: np.ndarray, img2: np.ndarray) -> float:
@@ -368,6 +369,8 @@ def lpips_similarity(
     ImageProcessingError
         If input validation fails.
     """
+    global _lpips_model
+
     import importlib
 
     try:
@@ -381,10 +384,9 @@ def lpips_similarity(
         import torch
 
         with _lpips_lock:
-            loss_fn = getattr(lpips_similarity, "_lpips_model", None)
-            if loss_fn is None:
-                loss_fn = lpips.LPIPS(net="alex", verbose=False)
-                setattr(lpips_similarity, "_lpips_model", loss_fn)
+            if _lpips_model is None:
+                _lpips_model = lpips.LPIPS(net="alex", verbose=False)
+            loss_fn = _lpips_model
 
         t1 = torch.from_numpy(img_as_float(img1).clip(0, 1)).float()
         t2 = torch.from_numpy(img_as_float(img2).clip(0, 1)).float()

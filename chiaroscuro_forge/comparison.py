@@ -202,12 +202,14 @@ def compare_processing_methods(
                 "output_path": output_path,
             }
 
-            if metrics and "quality_score" in metrics and metrics["quality_score"] > best_score:
-                quality_score = metrics["quality_score"]
-                if isinstance(quality_score, (int, float)):
-                    if float(quality_score) > best_score:
-                        best_score = float(quality_score)
-                        best_method = name
+            if metrics and "quality_score" in metrics:
+                try:
+                    quality_score = float(metrics["quality_score"])
+                except (TypeError, ValueError):
+                    continue
+                if quality_score > best_score:
+                    best_score = quality_score
+                    best_method = name
 
         except Exception as e:
             results[name] = {"error": str(e)}
