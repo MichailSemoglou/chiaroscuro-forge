@@ -12,6 +12,7 @@ import threading
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+from scipy import ndimage
 from skimage import color, feature
 from skimage.metrics import structural_similarity as ssim_skimage
 from skimage.transform import pyramid_gaussian
@@ -67,12 +68,16 @@ def ms_ssim(
     img2: np.ndarray,
     weights: Optional[List[float]] = None,
     levels: int = 5,
+    method: str = "wang",
 ) -> float:
     """
     Calculate Multi-Scale Structural Similarity Index (MS-SSIM).
 
-    MS-SSIM evaluates image quality at multiple resolutions, providing
-    a more comprehensive similarity measure than single-scale SSIM.
+    The default implementation follows the Wang et al. (2003) definition,
+    which multiplies the luminance term at the coarsest scale by a weighted
+    product of the contrast and structure terms across intermediate scales.
+    The historical averaging behavior remains available through
+    ``method="mean"`` for backward compatibility.
 
     Parameters
     ----------
@@ -81,9 +86,13 @@ def ms_ssim(
     img2 : np.ndarray
         Second image array (processed or comparison)
     weights : list of float, optional
-        Weights for each scale. If None, uses default weights.
+        Weight vector for the multilayer product. If None, uses the published
+        Wang et al. (2003) defaults.
     levels : int, default=5
-        Number of scales to use in the pyramid
+        Number of Gaussian scales to evaluate.
+    method : str, default="wang"
+        ``"wang"`` for the published formulation or ``"mean"`` for the legacy
+        per-scale average.
 
     Returns
     -------
@@ -101,50 +110,115 @@ def ms_ssim(
     if img1.shape != img2.shape:
         raise ImageProcessingError("Images must have the same dimensions for MS-SSIM calculation")
 
+    if not isinstance(levels, (int, np.integer)) or isinstance(levels, bool):
+        raise ImageProcessingError("MS-SSIM levels must be an integer")
+    if levels < 2:
+        raise ImageProcessingError("MS-SSIM requires at least two scales")
+
+    if method not in {"wang", "mean"}:
+        raise ImageProcessingError("MS-SSIM method must be 'wang' or 'mean'")
+
     # Convert to grayscale if color
     if img1.ndim == 3:
         img1 = color.rgb2gray(img_as_float(img1))
     if img2.ndim == 3:
         img2 = color.rgb2gray(img_as_float(img2))
 
-    # Default weights
     if weights is None:
         weights = [0.0448, 0.2856, 0.3001, 0.2363, 0.1333]
+    else:
+        weights = list(weights)
 
-    # Ensure we have the right number of weights
-    if len(weights) != levels:
-        weights = weights[:levels]
-        total = sum(weights)
-        weights = (
-            [w / total for w in weights] if total != 0 else [1.0 / len(weights)] * len(weights)
-        )
+    if not weights:
+        raise ImageProcessingError("MS-SSIM weights cannot be empty")
 
-    # Build pyramids
-    pyramid1 = list(pyramid_gaussian(img1, max_layer=levels - 1, downscale=2))
-    pyramid2 = list(pyramid_gaussian(img2, max_layer=levels - 1, downscale=2))
+    weights_array = np.asarray(weights, dtype=float)
+    if not np.all(np.isfinite(weights_array)):
+        raise ImageProcessingError("MS-SSIM weights must be finite")
+    if np.any(weights_array < 0.0):
+        raise ImageProcessingError("MS-SSIM weights must be non-negative")
 
-    ms_ssim_values = []
+    # Build pyramids; level 0 is the highest-resolution image and the final
+    # level is the coarsest one. This matches the Wang et al. (2003) multi-scale
+    # formulation, which evaluates luminance on the coarsest scale and contrast/
+    # structure terms on the intermediate scales.
+    pyramid1 = list(pyramid_gaussian(img1, max_layer=max(0, levels - 1), downscale=2))
+    pyramid2 = list(pyramid_gaussian(img2, max_layer=max(0, levels - 1), downscale=2))
+    usable_levels = min(levels, len(pyramid1))
 
-    for level in range(min(levels, len(pyramid1))):
-        try:
-            ssim_val = ssim_skimage(pyramid1[level], pyramid2[level], data_range=1.0)
-            ms_ssim_values.append(ssim_val)
-        except Exception:
-            # If SSIM calculation fails at this level, stop here
-            break
-
-    if not ms_ssim_values:
+    if usable_levels < 2:
         raise ImageProcessingError("Could not calculate MS-SSIM at any scale")
 
-    # Weight and combine
-    weights_used = weights[: len(ms_ssim_values)]
-    weights_sum = sum(weights_used)
-    if weights_sum == 0:
-        weights_normalized = [1.0 / len(weights_used)] * len(weights_used)
-    else:
-        weights_normalized = [w / weights_sum for w in weights_used]
+    if method == "mean":
+        scale_values = []
+        for level in range(usable_levels):
+            try:
+                scale_values.append(ssim_skimage(pyramid1[level], pyramid2[level], data_range=1.0))
+            except Exception as exc:  # pragma: no cover - defensive path
+                raise ImageProcessingError(f"Could not calculate MS-SSIM at scale {level}: {exc}")
+        legacy_weights = weights_array[: len(scale_values)]
+        legacy_weight_sum = legacy_weights.sum()
+        if np.isclose(legacy_weight_sum, 0.0):
+            legacy_weights = np.full(len(legacy_weights), 1.0 / len(legacy_weights))
+        else:
+            legacy_weights = legacy_weights / legacy_weight_sum
+        return float(np.dot(legacy_weights, scale_values[: len(legacy_weights)]))
 
-    return float(sum(w * s for w, s in zip(weights_normalized, ms_ssim_values)))
+    if len(weights_array) != levels:
+        weights_array = np.asarray(weights_array[:levels], dtype=float)
+        if len(weights_array) < levels:
+            weights_array = np.pad(
+                weights_array, (0, levels - len(weights_array)), constant_values=1.0 / levels
+            )
+
+    weights_sum = weights_array.sum()
+    if np.isclose(weights_sum, 0.0):
+        weights_array = np.full(levels, 1.0 / levels, dtype=float)
+    else:
+        weights_array = weights_array / weights_sum
+
+    def _ssim_terms(a: np.ndarray, b: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        a = np.asarray(a, dtype=float)
+        b = np.asarray(b, dtype=float)
+        sigma = 1.5
+
+        mu_a = ndimage.gaussian_filter(a, sigma=sigma, mode="reflect")
+        mu_b = ndimage.gaussian_filter(b, sigma=sigma, mode="reflect")
+        sigma2_a = ndimage.gaussian_filter(a * a, sigma=sigma, mode="reflect") - mu_a**2
+        sigma2_b = ndimage.gaussian_filter(b * b, sigma=sigma, mode="reflect") - mu_b**2
+        sigma_ab = ndimage.gaussian_filter(a * b, sigma=sigma, mode="reflect") - mu_a * mu_b
+
+        c1 = (0.01 * 1.0) ** 2
+        c2 = (0.03 * 1.0) ** 2
+        c3 = c2 / 2.0
+
+        luminance = (2.0 * mu_a * mu_b + c1) / (mu_a**2 + mu_b**2 + c1)
+        contrast = (2.0 * np.sqrt(np.maximum(sigma2_a * sigma2_b, 0.0)) + c2) / (
+            sigma2_a + sigma2_b + c2
+        )
+        structure = (sigma_ab + c3) / (np.sqrt(np.maximum(sigma2_a * sigma2_b, 0.0)) + c3)
+        return (
+            np.clip(luminance, 0.0, 1.0),
+            np.clip(contrast, 0.0, 1.0),
+            np.clip(structure, 0.0, 1.0),
+        )
+
+    active_weights = weights_array[:usable_levels]
+    active_weight_sum = active_weights.sum()
+    if np.isclose(active_weight_sum, 0.0):
+        active_weights = np.full(usable_levels, 1.0 / usable_levels, dtype=float)
+    else:
+        active_weights = active_weights / active_weight_sum
+
+    product = 1.0
+    for level in range(usable_levels - 1):
+        _, c_term, s_term = _ssim_terms(pyramid1[level], pyramid2[level])
+        product *= np.mean(c_term * s_term) ** active_weights[level]
+
+    coarsest_l, coarsest_c, coarsest_s = _ssim_terms(pyramid1[-1], pyramid2[-1])
+    product *= np.mean(coarsest_l) ** active_weights[-1]
+    product *= np.mean(coarsest_c * coarsest_s) ** active_weights[-1]
+    return float(np.clip(product, 0.0, 1.0))
 
 
 def feature_similarity(

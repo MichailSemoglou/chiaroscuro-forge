@@ -5,6 +5,21 @@ All notable changes to Chiaroscuro Forge are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+## [2.1.0] – 2026-08-18
+
+### Added
+
+- Opt-in linear-light processing path with a `linear_light` config flag and `--linear` CLI option
+- Tone mapping stage for an experimental linear-light workflow that maps processed values back to sRGB output
+
+### Changed
+
+- The processing pipeline can convert sRGB input to linear-light values before subsequent stages when the feature is enabled
+- The linear-light mode remains opt-in to preserve backward compatibility with the default gamma-encoded workflow
+- MS-SSIM exposes a compatibility mode for the historical per-scale averaging behavior alongside the current multiscale implementation
+
 ## [2.0.1] — 2026-08-16
 
 ### Fixed

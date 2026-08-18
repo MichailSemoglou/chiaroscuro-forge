@@ -326,6 +326,7 @@ def validate_processing_params(
     color_preservation: str,
     color_preservation_strength: float,
     application_type: str,
+    linear_light: bool = False,
 ) -> None:
     """
     Validate all processing parameters (delegates to ``validate_config``).
@@ -390,6 +391,7 @@ def validate_processing_params(
         contrast_stretch_percentiles=contrast_stretch_percentiles,
         gamma_correction=gamma_correction,
         color_preservation=color_preservation,
+        linear_light=linear_light,
         color_preservation_strength=color_preservation_strength,
         application_type=application_type,
     )
@@ -444,6 +446,9 @@ def validate_config(config: "ProcessingConfig") -> None:
 
     if config.gamma_correction <= 0:
         raise ImageProcessingError("Gamma correction must be positive")
+
+    if not isinstance(config.linear_light, bool):
+        raise ImageProcessingError("Linear light flag must be a boolean")
 
     if config.color_preservation not in VALID_COLOR_METHODS:
         raise ImageProcessingError(

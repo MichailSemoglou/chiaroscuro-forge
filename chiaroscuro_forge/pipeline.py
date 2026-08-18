@@ -1,8 +1,10 @@
-"""
-Image Processing Pipeline
+"""Stage-based image processing pipeline.
 
-This module implements a clean pipeline pattern for image processing,
-reducing complexity and improving maintainability.
+The pipeline is intentionally modular: each stage performs a single
+transformation and exposes a consistent ``process(image, context)`` interface.
+This keeps the enhancement workflow easy to extend while preserving the
+ability to switch between the default sRGB path and the opt-in linear-light
+mode.
 """
 
 from abc import ABC, abstractmethod
@@ -14,12 +16,33 @@ from skimage import color, exposure, filters, transform
 from .exceptions import ImageProcessingError
 
 
-class PipelineStage(ABC):
-    """
-    Abstract base class for pipeline stages.
+def srgb_to_linear(image: np.ndarray) -> np.ndarray:
+    """Convert sRGB-encoded values into linear-light values."""
+    image = np.asarray(image, dtype=np.float64)
+    return np.where(
+        image <= 0.04045,
+        image / 12.92,
+        ((image + 0.055) / 1.055) ** 2.4,
+    )
 
-    Each stage performs a specific transformation on an image
-    and can be chained together.
+
+def linear_to_srgb(image: np.ndarray) -> np.ndarray:
+    """Convert linear-light values back to sRGB-encoded values."""
+    image = np.asarray(image, dtype=np.float64)
+    return np.where(
+        image <= 0.0031308,
+        12.92 * image,
+        1.055 * (image ** (1.0 / 2.4)) - 0.055,
+    )
+
+
+class PipelineStage(ABC):
+    """Base class for all pipeline stages.
+
+    Each concrete stage implements a single transformation over an image and
+    consumes a shared context dictionary for configuration and intermediate
+    values. The common ``__call__`` wrapper ensures that stage-level failures are
+    surfaced consistently as ``ImageProcessingError`` instances.
     """
 
     def __init__(self, name: str):
@@ -45,13 +68,48 @@ class PipelineStage(ABC):
         pass
 
     def __call__(self, image: np.ndarray, context: Dict[str, Any]) -> np.ndarray:
-        """Allow stage to be called like a function."""
+        """Invoke the stage through the standard pipeline interface."""
         try:
             return self.process(image, context)
         except ImageProcessingError:
             raise
         except Exception as e:
             raise ImageProcessingError(f"{self.name} stage failed: {str(e)}")
+
+
+class LinearizeStage(PipelineStage):
+    """Convert sRGB input to linear-light values when the feature is enabled."""
+
+    def __init__(self):
+        super().__init__("Linearize")
+
+    def process(self, image: np.ndarray, context: Dict[str, Any]) -> np.ndarray:
+        if not context.get("linear_light", False):
+            return image
+        return np.asarray(np.clip(srgb_to_linear(image), 0.0, None))
+
+
+class ToneMappingStage(PipelineStage):
+    """Map linear-light values back to sRGB using a simple Reinhard-style curve."""
+
+    def __init__(self):
+        super().__init__("Tone Mapping")
+
+    def process(self, image: np.ndarray, context: Dict[str, Any]) -> np.ndarray:
+        if not context.get("linear_light", False):
+            return image
+
+        if image.ndim == 3:
+            luminance = 0.2126 * image[:, :, 0] + 0.7152 * image[:, :, 1] + 0.0722 * image[:, :, 2]
+        else:
+            luminance = image
+        luminance = np.clip(luminance, 1e-6, None)
+
+        mapped = luminance / (1.0 + luminance)
+        scale = mapped / luminance
+        result = image * scale[..., None] if image.ndim == 3 else image * scale
+        result = np.asarray(linear_to_srgb(result))
+        return np.clip(result, 0.0, 1.0)
 
 
 class ResizeStage(PipelineStage):
@@ -279,12 +337,13 @@ class ColorPreservationStage(PipelineStage):
 
         strength = context.get("color_preservation_strength", 0.7)
         original = context.get("original_for_color")
+        linear_light = context.get("linear_light", False)
 
         if original is None:
             return image
 
         if method == "lab":
-            return self._preserve_lab(image, original, strength)
+            return self._preserve_lab(image, original, strength, linear_light=linear_light)
         elif method == "ratio":
             return self._preserve_ratio(image, original, strength)
         elif method == "rgb":
@@ -293,11 +352,18 @@ class ColorPreservationStage(PipelineStage):
             return image
 
     def _preserve_lab(
-        self, enhanced: np.ndarray, original: np.ndarray, strength: float
+        self,
+        enhanced: np.ndarray,
+        original: np.ndarray,
+        strength: float,
+        linear_light: bool = False,
     ) -> np.ndarray:
         """Preserve colors in LAB space."""
-        lab_enhanced = color.rgb2lab(enhanced)
-        lab_original = color.rgb2lab(original)
+        enhanced_srgb = linear_to_srgb(enhanced) if linear_light else enhanced
+        original_srgb = linear_to_srgb(original) if linear_light else original
+
+        lab_enhanced = color.rgb2lab(enhanced_srgb)
+        lab_original = color.rgb2lab(original_srgb)
 
         # Blend a and b channels
         lab_result = lab_enhanced.copy()
@@ -308,7 +374,10 @@ class ColorPreservationStage(PipelineStage):
             strength * lab_original[:, :, 2] + (1 - strength) * lab_enhanced[:, :, 2]
         )
 
-        return np.asarray(color.lab2rgb(lab_result))
+        lab_rgb = color.lab2rgb(lab_result)
+        if linear_light:
+            lab_rgb = srgb_to_linear(lab_rgb)
+        return np.asarray(np.clip(lab_rgb, 0.0, 1.0))
 
     def _preserve_ratio(
         self, enhanced: np.ndarray, original: np.ndarray, strength: float
@@ -372,9 +441,15 @@ class ImageProcessingPipeline:
         return result, context
 
 
-def create_standard_pipeline() -> ImageProcessingPipeline:
+def create_standard_pipeline(linear_light: bool = False) -> ImageProcessingPipeline:
     """
     Create the standard image processing pipeline.
+
+    Parameters
+    ----------
+    linear_light : bool, default=False
+        If True, convert from sRGB to linear light at the start and map back
+        to sRGB before returning the final image.
 
     Returns
     -------
@@ -383,9 +458,13 @@ def create_standard_pipeline() -> ImageProcessingPipeline:
     """
     pipeline = ImageProcessingPipeline()
     pipeline.add_stage(ResizeStage())
+    if linear_light:
+        pipeline.add_stage(LinearizeStage())
     pipeline.add_stage(DenoiseStage())
     pipeline.add_stage(SharpenStage())
     pipeline.add_stage(ContrastStage())
     pipeline.add_stage(GammaCorrectionStage())
     pipeline.add_stage(ColorPreservationStage())
+    if linear_light:
+        pipeline.add_stage(ToneMappingStage())
     return pipeline

@@ -2,9 +2,9 @@ cff-version: 1.2.0
 message: "If you use Chiaroscuro Forge in your research, please cite it."
 title: "Chiaroscuro Forge"
 type: software
-version: "2.0.1"
+version: "2.1.0"
 doi: "10.5281/zenodo.21964437"
-date-released: 2026-08-16
+date-released: 2026-08-18
 authors:
   - family-names: "Semoglou"
     given-names: "Michail"

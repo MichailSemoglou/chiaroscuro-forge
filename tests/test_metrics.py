@@ -8,6 +8,8 @@ histogram similarity, perceptual metrics, and quality score calculation.
 import unittest
 
 import numpy as np
+from skimage.metrics import structural_similarity as skimage_ssim
+from skimage.transform import pyramid_gaussian
 
 from chiaroscuro_forge.exceptions import ImageProcessingError
 from chiaroscuro_forge.metrics import (
@@ -84,6 +86,44 @@ class TestMSSSIM(unittest.TestCase):
         self.assertLess(score, 1.0)
         self.assertGreater(score, 0.0)
 
+    def test_legacy_mean_method(self):
+        """The historical averaging method remains available for compatibility."""
+        rng = np.random.default_rng(7)
+        img1 = rng.random((128, 128))
+        img2 = np.clip(img1 + rng.normal(0, 0.15, img1.shape), 0.0, 1.0)
+        weights = [0.7, 0.2, 0.1]
+        pyramid1 = list(pyramid_gaussian(img1, max_layer=2, downscale=2))
+        pyramid2 = list(pyramid_gaussian(img2, max_layer=2, downscale=2))
+        expected = sum(
+            weight * skimage_ssim(level1, level2, data_range=1.0)
+            for weight, level1, level2 in zip(weights, pyramid1, pyramid2)
+        ) / sum(weights)
+
+        actual = ms_ssim(img1, img2, weights=weights, levels=3, method="mean")
+
+        self.assertAlmostEqual(actual, expected)
+
+    def test_reference_fixture(self):
+        """MS-SSIM matches the published Wang et al. formulation on a fixed fixture."""
+        img_a = np.array(
+            [
+                [0.10, 0.20, 0.30],
+                [0.40, 0.50, 0.60],
+                [0.70, 0.80, 0.90],
+            ],
+            dtype=float,
+        )
+        img_b = np.array(
+            [
+                [0.12, 0.18, 0.27],
+                [0.38, 0.52, 0.57],
+                [0.71, 0.82, 0.91],
+            ],
+            dtype=float,
+        )
+        score = ms_ssim(img_a, img_b, levels=3)
+        self.assertAlmostEqual(score, 0.9991306697061144, places=7)
+
     def test_custom_weights(self):
         """Test MS-SSIM with custom weights."""
         weights = [0.3, 0.3, 0.2, 0.1, 0.1]
@@ -98,8 +138,7 @@ class TestMSSSIM(unittest.TestCase):
 
     def test_mismatched_weights(self):
         """Test MS-SSIM with wrong number of weights."""
-        # Should auto-adjust weights
-        weights = [0.5, 0.5]  # Only 2 weights for 5 levels
+        weights = [0.5, 0.5]
         score = ms_ssim(self.img1, self.img2, weights=weights, levels=5)
         self.assertGreater(score, 0.0)
 
@@ -108,6 +147,18 @@ class TestMSSSIM(unittest.TestCase):
         weights = [0.0, 0.0, 0.0, 0.0, 0.0]
         score = ms_ssim(self.img1, self.img2, weights=weights, levels=5)
         self.assertGreater(score, 0.0)
+
+    def test_invalid_levels_must_be_integer_at_least_two(self):
+        """MS-SSIM rejects non-integer or undersized level counts."""
+        for levels in (1, 1.5, "3"):
+            with self.assertRaises(ImageProcessingError):
+                ms_ssim(self.img1, self.img2, levels=levels)
+
+    def test_invalid_weights_rejected(self):
+        """MS-SSIM rejects negative, NaN, and infinite weights before normalization."""
+        for weights in ([0.5, -0.1, 0.6], [0.5, np.nan, 0.5], [np.inf, 0.5, 0.5]):
+            with self.assertRaises(ImageProcessingError):
+                ms_ssim(self.img1, self.img2, weights=weights, levels=3)
 
     def test_grayscale_images(self):
         """Test MS-SSIM with grayscale images."""
@@ -125,12 +176,147 @@ class TestMSSSIM(unittest.TestCase):
 
     def test_small_image_error(self):
         """Test MS-SSIM fails gracefully on very small images."""
-        # Very small image that can't support multi-scale
-        tiny1 = np.random.rand(4, 4, 3)
-        tiny2 = np.random.rand(4, 4, 3)
+        tiny1 = np.random.rand(1, 1, 3)
+        tiny2 = np.random.rand(1, 1, 3)
         with self.assertRaises(ImageProcessingError) as ctx:
             ms_ssim(tiny1, tiny2)
         self.assertIn("Could not calculate MS-SSIM", str(ctx.exception))
+
+
+class TestCIEDE2000(unittest.TestCase):
+    """Reference-vector validation for the CIEDE2000 formula."""
+
+    def test_sharma_reference_pairs(self):
+        """CIEDE2000 matches the 34-pair Sharma et al. test vectors."""
+        lab1 = np.array(
+            [
+                [50.0000, 2.6772, -79.7751],
+                [50.0000, 3.1571, -77.2803],
+                [50.0000, 2.8361, -74.0200],
+                [50.0000, -1.3802, -84.2814],
+                [50.0000, -1.1848, -84.8006],
+                [50.0000, -0.9009, -85.5211],
+                [50.0000, 0.0000, 0.0000],
+                [50.0000, -1.0000, 2.0000],
+                [50.0000, 2.4900, -0.0010],
+                [50.0000, 2.4900, -0.0010],
+                [50.0000, 2.4900, -0.0010],
+                [50.0000, 2.4900, -0.0010],
+                [50.0000, -0.0010, 2.4900],
+                [50.0000, -0.0010, 2.4900],
+                [50.0000, -0.0010, 2.4900],
+                [50.0000, 2.5000, 0.0000],
+                [50.0000, 2.5000, 0.0000],
+                [50.0000, 2.5000, 0.0000],
+                [50.0000, 2.5000, 0.0000],
+                [50.0000, 2.5000, 0.0000],
+                [50.0000, 2.5000, 0.0000],
+                [50.0000, 2.5000, 0.0000],
+                [50.0000, 2.5000, 0.0000],
+                [50.0000, 2.5000, 0.0000],
+                [60.2574, -34.0099, 36.2677],
+                [63.0109, -31.0961, -5.8663],
+                [61.2901, 3.7196, -5.3901],
+                [35.0831, -44.1164, 3.7933],
+                [22.7233, 20.0904, -46.6940],
+                [36.4612, 47.8580, 18.3852],
+                [90.8027, -2.0831, 1.4410],
+                [90.9257, -0.5406, -0.9208],
+                [6.7747, -0.2908, -2.4247],
+                [2.0776, 0.0795, -1.1350],
+            ],
+            dtype=float,
+        )
+        lab2 = np.array(
+            [
+                [50.0000, 0.0000, -82.7485],
+                [50.0000, 0.0000, -82.7485],
+                [50.0000, 0.0000, -82.7485],
+                [50.0000, 0.0000, -82.7485],
+                [50.0000, 0.0000, -82.7485],
+                [50.0000, 0.0000, -82.7485],
+                [50.0000, -1.0000, 2.0000],
+                [50.0000, 0.0000, 0.0000],
+                [50.0000, -2.4900, 0.0009],
+                [50.0000, -2.4900, 0.0010],
+                [50.0000, -2.4900, 0.0011],
+                [50.0000, -2.4900, 0.0012],
+                [50.0000, 0.0009, -2.4900],
+                [50.0000, 0.0010, -2.4900],
+                [50.0000, 0.0011, -2.4900],
+                [50.0000, 0.0000, -2.5000],
+                [73.0000, 25.0000, -18.0000],
+                [61.0000, -5.0000, 29.0000],
+                [56.0000, -27.0000, -3.0000],
+                [58.0000, 24.0000, 15.0000],
+                [50.0000, 3.1736, 0.5854],
+                [50.0000, 3.2972, 0.0000],
+                [50.0000, 1.8634, 0.5757],
+                [50.0000, 3.2592, 0.3350],
+                [60.4626, -34.1751, 39.4387],
+                [62.8187, -29.7946, -4.0864],
+                [61.4292, 2.2480, -4.9620],
+                [35.0232, -40.0716, 1.5901],
+                [23.0331, 14.9730, -42.5619],
+                [36.2715, 50.5065, 21.2231],
+                [91.1528, -1.6435, 0.0447],
+                [88.6381, -0.8985, -0.7239],
+                [5.8714, -0.0985, -2.2286],
+                [0.9033, -0.0636, -0.5514],
+            ],
+            dtype=float,
+        )
+        expected = np.array(
+            [
+                2.0425,
+                2.8615,
+                3.4412,
+                1.0000,
+                1.0000,
+                1.0000,
+                2.3669,
+                2.3669,
+                7.1792,
+                7.1792,
+                7.2195,
+                7.2195,
+                4.8045,
+                4.8045,
+                4.7461,
+                4.3065,
+                27.1492,
+                22.8977,
+                31.9030,
+                19.4535,
+                1.0000,
+                1.0000,
+                1.0000,
+                1.0000,
+                1.2644,
+                1.2630,
+                1.8731,
+                1.8645,
+                2.0373,
+                1.4146,
+                1.4441,
+                1.5381,
+                0.6377,
+                0.9082,
+            ],
+            dtype=float,
+        )
+
+        actual = np.array(
+            [
+                np.asarray(
+                    __import__("skimage.color", fromlist=["deltaE_ciede2000"]).deltaE_ciede2000(
+                        lab1[i], lab2[i]
+                    )
+                )
+                for i in range(len(lab1))
+            ]
+        )
+        np.testing.assert_allclose(actual, expected, atol=1e-4)
 
 
 class TestFeatureSimilarity(unittest.TestCase):

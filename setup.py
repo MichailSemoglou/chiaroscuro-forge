@@ -12,12 +12,13 @@ def _read_version() -> str:
     init_path = pathlib.Path(__file__).parent / "chiaroscuro_forge" / "__init__.py"
     if not init_path.exists():
         raise RuntimeError("Unable to find chiaroscuro_forge/__init__.py")
-    
+
     content = init_path.read_text(encoding="utf-8")
     match = re.search(r'^__version__\s*=\s*"([^"]+)"\s*$', content, re.M)
     if not match:
         raise RuntimeError("Unable to find __version__ in __init__.py")
     return match.group(1)
+
 
 setup(
     # Distribution name on PyPI (can differ from import name).
@@ -25,12 +26,24 @@ setup(
     version=_read_version(),
     author="Michail Semoglou",
     author_email="m.semoglou@tongji.edu.cn",
-    description="An intelligent image enhancement tool inspired by Renaissance techniques",
+    description="Renaissance-inspired image enhancement and quality assessment for perceptual processing, color preservation, and reproducible pipelines",
     long_description=long_description,
     long_description_content_type="text/markdown",
+    keywords=[
+        "image-processing",
+        "image-enhancement",
+        "computer-vision",
+        "quality-metrics",
+        "scikit-image",
+        "color-preservation",
+        "batch-processing",
+        "photography",
+        "python",
+    ],
     url="https://github.com/MichailSemoglou/chiaroscuro-forge",
     packages=find_packages(),
     package_data={"chiaroscuro_forge": ["presets/*.json"]},
+    exclude_package_data={"chiaroscuro_forge": ["presets/test*.json", "presets/new_preset.json"]},
     py_modules=["chiaroscuro_forge"] if not find_packages() else None,
     license="MIT",
     project_urls={
@@ -87,4 +100,3 @@ setup(
     include_package_data=True,
     zip_safe=False,
 )
-

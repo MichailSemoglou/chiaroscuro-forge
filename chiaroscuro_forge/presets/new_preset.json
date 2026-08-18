@@ -27,6 +27,7 @@
         "use_tiling": null,
         "tile_size": 512,
         "tile_overlap": 64,
-        "rotation_angle": 0.0
+        "rotation_angle": 0.0,
+        "linear_light": false
     }
 }

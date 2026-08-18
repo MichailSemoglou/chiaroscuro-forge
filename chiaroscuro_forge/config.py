@@ -15,63 +15,78 @@ from typing import Any, Dict, Optional, Tuple
 
 @dataclass
 class ProcessingConfig:
-    """Immutable-by-convention configuration for image processing.
+    """Configuration container for the image processing pipeline.
 
-    Every field carries a default that matches the existing
-    ``process_image`` signature, so existing callers that pass
-    individual keyword arguments continue to work unchanged.
+    This dataclass centralizes the options exposed by the CLI, API, batch
+    runner, and direct Python calls. The defaults are chosen to preserve the
+    historical behavior of ``process_image`` while allowing advanced modes such
+    as the opt-in linear-light workflow to be enabled explicitly.
+
+    Notes
+    -----
+    The class is intentionally ``immutable-by-convention``. Callers should use
+    ``merge()`` or construct a new ``ProcessingConfig`` when they need a derived
+    configuration instead of mutating an instance in place.
 
     Parameters
     ----------
     application_type : str
         One of ``"general"``, ``"photography"``, ``"medical"``,
-        ``"document"``, ``"art"``.
+        ``"document"``, or ``"art"``.
     scale_factor : float
-        Scaling factor for resizing (> 0).
+        Scaling factor for resizing. Values greater than 1.0 enlarge the image,
+        while values between 0 and 1 shrink it.
     order : int
-        Interpolation order for general operations (0-5).
+        Interpolation order used for general image operations.
     order_rescale : int
-        Interpolation order for rescaling (0-5).
+        Interpolation order used during rescaling.
     order_rotate : int
-        Interpolation order for rotation (0-5).
+        Interpolation order used during rotation.
     rotation_angle : float
-        Rotation angle in degrees to apply before metrics evaluation.
+        Rotation angle in degrees applied before metrics evaluation.
     denoise_type : str
-        One of ``"gaussian"``, ``"median"``, ``"bilateral"``,
-        ``"none"``.
+        One of ``"gaussian"``, ``"median"``, ``"bilateral"``, or ``"none"``.
     denoise_sigma : float
-        Sigma parameter for denoising (>= 0).
+        Noise parameter for the selected denoising method.
     sharpen : bool
-        Whether to apply sharpening.
+        Whether to apply a sharpening step.
     sharpen_amount : float
-        Amount of sharpening (> 0).
+        Sharpening strength. Higher values increase enhancement intensity.
     equalize : bool
-        Whether to apply histogram equalization.
+        Whether histogram equalization is enabled.
     equalize_method : str
-        One of ``"standard"``, ``"clahe"``, ``"stretch"``,
+        One of ``"standard"``, ``"clahe"``, ``"stretch"``, or
         ``"adaptive_gamma"``.
     clip_limit : float
-        CLAHE clip limit (> 0).
+        CLAHE clip limit. Higher values preserve more detail but may increase
+        contrast amplification.
     clip_limit_kernel_size : int
-        CLAHE kernel size (> 0).
+        Kernel size used by CLAHE when the method requires local context.
     contrast_stretch_percentiles : tuple
-        Low and high percentiles for contrast stretching (0-100).
+        Low and high percentiles used for contrast stretching in normalized
+        percentage space.
     gamma_correction : float
-        Gamma correction value (> 0).
+        Gamma-adjustment factor applied during processing.
+    linear_light : bool
+        Whether to convert the input into linear-light space before processing
+        and map the output back to sRGB with a tone-mapping stage. This remains
+        opt-in to preserve the default workflow.
     color_preservation : str
-        One of ``"none"``, ``"lab"``, ``"rgb"``, ``"ratio"``.
+        One of ``"none"``, ``"lab"``, ``"rgb"``, or ``"ratio"``.
     color_preservation_strength : float
-        Strength of color preservation (0.0-1.0).
+        Relative strength of the selected color-preservation strategy.
     calculate_metrics : bool
-        Whether to calculate quality metrics.
+        Whether to compute the standard quality metrics for the processed result.
     calculate_advanced_metrics : bool
-        Whether to calculate advanced metrics (MS-SSIM, etc.).
+        Whether to compute advanced metrics such as MS-SSIM and related
+        perceptual comparisons.
     use_tiling : Optional[bool]
-        Force tiling on/off. ``None`` means auto-detect.
+        Whether to force tiling on or off. ``None`` allows the library to choose
+        auto-detection based on image size and memory constraints.
     tile_size : int
-        Tile size in pixels for large-image processing.
+        Tile side length used for large-image processing.
     tile_overlap : int
-        Overlap between tiles in pixels.
+        Pixel overlap between neighboring tiles.
     """
 
     application_type: str = "general"
@@ -105,6 +120,7 @@ class ProcessingConfig:
     tile_size: int = 512
     tile_overlap: int = 64
     rotation_angle: float = 0.0
+    linear_light: bool = False
 
     def merge(self, overrides: Dict[str, Any]) -> "ProcessingConfig":
         """Return a new config with fields replaced by *overrides*.
@@ -161,6 +177,7 @@ class ProcessingConfig:
             "clip_limit_kernel_size": self.clip_limit_kernel_size,
             "contrast_stretch_percentiles": self.contrast_stretch_percentiles,
             "gamma_correction": self.gamma_correction,
+            "linear_light": self.linear_light,
             "color_preservation": self.color_preservation,
             "color_preservation_strength": self.color_preservation_strength,
         }

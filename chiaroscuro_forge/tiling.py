@@ -133,7 +133,7 @@ def blend_overlap(tile1: np.ndarray, tile2: np.ndarray, overlap: int, axis: int)
         raise ImageProcessingError("Axis must be 0 (vertical) or 1 (horizontal)")
 
     # Create blending weights
-    weights = np.linspace(0, 1, overlap)
+    weights: np.ndarray[Any, np.dtype[np.float64]] = np.linspace(0, 1, overlap)
 
     # Reshape weights for broadcasting
     if axis == 0:  # Vertical blend
