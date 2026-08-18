@@ -1,16 +1,14 @@
 """
-Chiaroscuro Forge - Intelligent Image Enhancement Tool
+Chiaroscuro Forge - intelligent image enhancement and quality assessment.
 
-This package provides comprehensive image enhancement capabilities inspired by
-Renaissance art techniques, featuring automatic parameter detection, advanced
-color preservation, and quality metrics.
+The package exposes a transparent, stage-based image processing workflow
+inspired by Renaissance image-making practices. It combines automatic
+parameter analysis, color-preservation strategies, perceptual quality metrics,
+and repeatable batch processing for practical and research-oriented workflows.
 
-Main Features:
-    - Intelligent enhancement with automatic parameter selection
-    - Multiple color preservation methods (LAB, RGB, ratio-based)
-    - Quality metrics (SSIM, PSNR, MS-SSIM, perceptual metrics)
-    - Batch processing with parallel execution
-    - Preset system for reusable configurations
+The public API is intentionally stable for normal usage, while advanced or
+experimental modes such as the opt-in linear-light pipeline are documented as
+such rather than presented as the default processing path.
 
 Example:
     Basic usage for image enhancement::
@@ -20,7 +18,7 @@ Example:
         processed, metrics = process_image(
             "input.jpg",
             output_path="enhanced.jpg",
-            application_type="photography"
+            application_type="photography",
         )
         print(f"Quality Score: {metrics['quality_score']:.4f}")
 
@@ -28,7 +26,7 @@ For more examples, see the documentation at:
 https://github.com/MichailSemoglou/chiaroscuro-forge
 """
 
-__version__ = "2.0.1"
+__version__ = "2.1.0"
 __author__ = "Michail Semoglou"
 __email__ = "m.semoglou@tongji.edu.cn"
 __license__ = "MIT"
