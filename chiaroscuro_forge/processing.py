@@ -1,8 +1,14 @@
-"""
-Image processing functions using clean pipeline pattern.
+"""High-level image processing entry points.
 
-This module contains the refactored main image processing function
-that uses a pipeline pattern for better maintainability.
+This module contains the main public processing workflow for Chiaroscuro Forge.
+It builds a unified ``ProcessingConfig`` from either explicit arguments or a
+single configuration object, validates the requested workflow, performs image
+loading and output handling, and returns processed pixels together with the
+computed quality metrics.
+
+The API intentionally keeps the historical keyword-based calling pattern for
+backward compatibility while encouraging the more structured
+``ProcessingConfig`` flow for new integrations.
 """
 
 import os
@@ -20,7 +26,7 @@ from .constants import (
 )
 from .exceptions import ImageProcessingError
 from .metrics import calculate_perceptual_metrics, calculate_quality_score
-from .pipeline import create_standard_pipeline
+from .pipeline import create_standard_pipeline, srgb_to_linear
 from .tiling import process_image_tiled, should_use_tiling
 from .validation import _validate_image_path, _validate_output_path, validate_config
 
@@ -29,7 +35,7 @@ def process_image(
     image_path: str,
     output_path: Optional[str] = None,
     config: Optional[ProcessingConfig] = None,
-    # -- individual parameter overrides (backward compatible) ------------
+    # Legacy keyword arguments remain accepted for backward compatibility.
     order: int = 1,
     order_rescale: int = 1,
     order_rotate: int = 1,
@@ -53,34 +59,42 @@ def process_image(
     tile_size: int = DEFAULT_TILE_SIZE,
     tile_overlap: int = DEFAULT_TILE_OVERLAP,
     rotation_angle: float = 0.0,
+    linear_light: bool = False,
 ) -> Tuple[np.ndarray, Optional[Dict[str, float]]]:
-    """
-    Process an image using a clean pipeline architecture.
+    """Process an image and return the enhanced result with optional metrics.
 
-    Parameters may be supplied individually (backward compatible) or
-    through a single ``ProcessingConfig`` object. When ``config`` is
-    provided, individual keyword arguments are ignored; use
-    ``config.merge()`` to combine overrides before calling.
+    This is the library's main public entry point. The caller may provide a
+    complete ``ProcessingConfig`` object or use the legacy keyword-based form,
+    which is preserved for compatibility with older integrations.
 
     Parameters
     ----------
     image_path : str
-        Path to input image file.
+        Path to the source image file.
     output_path : str, optional
-        Path to save processed image.
+        Destination path for the processed image. If omitted, the image is only
+        returned in memory.
     config : ProcessingConfig, optional
-        Unified configuration object.
+        Unified configuration object. When supplied, it takes precedence over
+        legacy keyword arguments.
 
     Returns
     -------
-    tuple
-        (processed_image, metrics_dict) where metrics_dict is None if
-        ``calculate_metrics=False``.
+    tuple[np.ndarray, dict | None]
+        A tuple of ``(processed_image, metrics_dict)``. The metrics dictionary is
+        ``None`` when metric calculation is disabled.
 
     Raises
     ------
     ImageProcessingError
-        If validation fails, processing fails, or file operations fail.
+        Raised when validation, file loading, processing, output writing, or
+        metric computation fails.
+
+    Notes
+    -----
+    The ``linear_light`` option is opt-in and is intended for experimental
+    workflows that require sRGB-to-linear conversion before enhancement and a
+    tone-mapping step before final output.
     """
     try:
         # 1. Build unified config
@@ -103,6 +117,7 @@ def process_image(
                 contrast_stretch_percentiles=contrast_stretch_percentiles,
                 gamma_correction=gamma_correction,
                 color_preservation=color_preservation,
+                linear_light=linear_light,
                 color_preservation_strength=color_preservation_strength,
                 calculate_metrics=calculate_metrics,
                 calculate_advanced_metrics=calculate_advanced_metrics,
@@ -128,7 +143,9 @@ def process_image(
 
         # 5. Build processing context
         context = cfg.to_context()
-        context["original_for_color"] = image.copy()
+        context["original_for_color"] = (
+            srgb_to_linear(image.copy()) if cfg.linear_light else image.copy()
+        )
 
         # 6. Determine if tiling should be used
         actual_use_tiling = cfg.use_tiling
@@ -146,13 +163,15 @@ def process_image(
             actual_use_tiling = False
 
         # 7. Process through pipeline
-        pipeline = create_standard_pipeline()
+        pipeline = create_standard_pipeline(linear_light=cfg.linear_light)
 
         if actual_use_tiling:
 
             def process_tile(tile: np.ndarray, **kwargs) -> np.ndarray:
                 tile_context = context.copy()
-                tile_context["original_for_color"] = tile.copy()
+                tile_context["original_for_color"] = (
+                    srgb_to_linear(tile.copy()) if cfg.linear_light else tile.copy()
+                )
                 processed_tile, _ = pipeline.process(tile, tile_context)
                 return processed_tile
 

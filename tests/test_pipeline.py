@@ -18,9 +18,11 @@ from chiaroscuro_forge.pipeline import (
     DenoiseStage,
     GammaCorrectionStage,
     ImageProcessingPipeline,
+    LinearizeStage,
     PipelineStage,
     ResizeStage,
     SharpenStage,
+    ToneMappingStage,
     create_standard_pipeline,
 )
 
@@ -206,6 +208,34 @@ class TestContrastStage(unittest.TestCase):
         np.testing.assert_array_equal(result, self.image)
 
 
+class TestLinearizeStage(unittest.TestCase):
+    """Test linear light conversion stage."""
+
+    def setUp(self):
+        self.image = np.array([[[0.0, 0.0, 0.0], [0.5, 0.5, 0.5], [1.0, 1.0, 1.0]]], dtype=float)
+        self.stage = LinearizeStage()
+
+    def test_linearize_converts_srgb_to_linear(self):
+        context = {"linear_light": True}
+        result = self.stage.process(self.image, context)
+        self.assertEqual(result.shape, self.image.shape)
+        self.assertGreater(result[0, 1, 0], 0.0)
+        self.assertLess(result[0, 1, 0], 0.5)
+        self.assertTrue(np.all(result >= 0.0))
+        self.assertTrue(np.all(result <= 1.0))
+
+    def test_linearize_preserves_hdr_headroom(self):
+        """Linear-light conversion keeps values above 1.0 in HDR input."""
+        hdr_image = np.array([[[1.5, 2.0, 3.0]]], dtype=float)
+        result = self.stage.process(hdr_image, {"linear_light": True})
+        self.assertTrue(np.all(result >= 0.0))
+        self.assertGreater(result[0, 0, 0], 1.0)
+
+    def test_linearize_disabled_returns_original(self):
+        result = self.stage.process(self.image, {})
+        np.testing.assert_array_equal(result, self.image)
+
+
 class TestGammaCorrectionStage(unittest.TestCase):
     """Test GammaCorrectionStage functionality."""
 
@@ -248,6 +278,27 @@ class TestGammaCorrectionStage(unittest.TestCase):
         self.assertEqual(result.shape, self.image.shape)
 
 
+class TestToneMappingStage(unittest.TestCase):
+    """Test tone mapping stage for linear-light workflows."""
+
+    def setUp(self):
+        self.image = np.array([[[0.0, 0.2, 0.4], [0.6, 0.8, 1.0]]], dtype=float)
+        self.stage = ToneMappingStage()
+
+    def test_tone_mapping_applies_reinhard(self):
+        context = {"linear_light": True}
+        result = self.stage.process(self.image, context)
+        self.assertEqual(result.shape, self.image.shape)
+        self.assertTrue(np.all(result >= 0.0))
+        self.assertTrue(np.all(result <= 1.0))
+        self.assertLess(np.max(result), np.max(self.image))
+        self.assertGreater(np.min(result), np.min(self.image) - 1e-9)
+
+    def test_tone_mapping_disabled_returns_original(self):
+        result = self.stage.process(self.image, {})
+        np.testing.assert_array_equal(result, self.image)
+
+
 class TestColorPreservationStage(unittest.TestCase):
     """Test ColorPreservationStage functionality."""
 
@@ -268,6 +319,21 @@ class TestColorPreservationStage(unittest.TestCase):
         result = self.stage.process(self.processed, context)
 
         self.assertEqual(result.shape, self.processed.shape)
+
+    def test_color_preservation_lab_linear_light_matches_encoding(self):
+        """LAB preservation in linear-light mode uses sRGB conversion on both sides."""
+        original = np.array([[[0.5, 0.4, 0.3], [0.7, 0.6, 0.5]]], dtype=float)
+        enhanced = np.array([[[0.6, 0.5, 0.4], [0.8, 0.7, 0.6]]], dtype=float)
+        context = {
+            "original_for_color": original,
+            "color_preservation": "lab",
+            "color_preservation_strength": 0.8,
+            "linear_light": True,
+        }
+        result = self.stage.process(enhanced, context)
+        self.assertEqual(result.shape, enhanced.shape)
+        self.assertTrue(np.all(result >= 0.0))
+        self.assertTrue(np.all(result <= 1.0))
 
     def test_color_preservation_ratio(self):
         """Test ratio-based preservation."""
@@ -363,6 +429,13 @@ class TestStandardPipeline(unittest.TestCase):
             "ColorPreservationStage",
         ]
         self.assertEqual(stage_types, expected)
+
+    def test_linear_pipeline_creation(self):
+        """Test linear light pipeline includes conversion and tone mapping."""
+        pipeline = create_standard_pipeline(linear_light=True)
+        stage_types = [type(s).__name__ for s in pipeline.stages]
+        self.assertEqual(stage_types[:2], ["ResizeStage", "LinearizeStage"])
+        self.assertEqual(stage_types[-1], "ToneMappingStage")
 
     def test_standard_pipeline_execution(self):
         """Test standard pipeline processes image."""

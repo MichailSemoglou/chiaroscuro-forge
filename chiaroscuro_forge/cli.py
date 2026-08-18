@@ -1,8 +1,9 @@
-"""
-Command-line interface for chiaroscuro-forge.
+"""Command-line interface for Chiaroscuro Forge.
 
-This module provides the main CLI entry point with comprehensive argument parsing
-for single image processing, batch processing, analysis, and preset management.
+The CLI exposes the primary user workflow for single-image enhancement,
+batch processing, image analysis, and preset management. It keeps the command
+surface straightforward while delegating all actual processing to the shared
+configuration and pipeline layers.
 """
 
 import argparse
@@ -18,11 +19,19 @@ from .processing import process_image
 
 
 def main():
-    """Main CLI entry point for chiaroscuro-forge."""
-    parser = argparse.ArgumentParser(description="Enhanced Image Processing Tool")
+    """Run the Chiaroscuro Forge command-line interface.
 
-    # Input/output arguments
-    input_group = parser.add_argument_group("Input/Output")
+    Returns
+    -------
+    int
+        Exit code used by the CLI process. A return value of 0 indicates a
+        successful command execution.
+    """
+    parser = argparse.ArgumentParser(
+        description="Image enhancement and analysis tools for Chiaroscuro Forge"
+    )
+
+    input_group = parser.add_argument_group("Input and output")
     input_group.add_argument(
         "image_path",
         nargs="?",
@@ -37,8 +46,7 @@ def main():
         "--batch", "-b", action="store_true", help="Enable batch processing mode"
     )
 
-    # Processing parameters
-    process_group = parser.add_argument_group("Processing Parameters")
+    process_group = parser.add_argument_group("Processing parameters")
     process_group.add_argument(
         "--application",
         "-a",
@@ -47,9 +55,13 @@ def main():
         help="Application type for optimization",
     )
     process_group.add_argument("--preset", help="Name of a preset to use")
+    process_group.add_argument(
+        "--linear",
+        action="store_true",
+        help="Process in linear light and apply an sRGB tone mapping stage at the end",
+    )
 
-    # Analysis options
-    analysis_group = parser.add_argument_group("Analysis")
+    analysis_group = parser.add_argument_group("Analysis and comparison")
     analysis_group.add_argument(
         "--analyze", action="store_true", help="Analyze image and suggest parameters"
     )
@@ -67,8 +79,7 @@ def main():
         help="Output directory for comparison results",
     )
 
-    # Preset management
-    preset_group = parser.add_argument_group("Preset Management")
+    preset_group = parser.add_argument_group("Preset management")
     preset_group.add_argument(
         "--save-preset",
         help="Save the current parameters as a preset with the given name",
@@ -81,8 +92,7 @@ def main():
         help="Description for the preset when using --save-preset",
     )
 
-    # Batch processing options
-    batch_group = parser.add_argument_group("Batch Processing Options")
+    batch_group = parser.add_argument_group("Batch processing options")
     batch_group.add_argument(
         "--workers",
         "-w",
@@ -122,7 +132,7 @@ def main():
             return 1
 
         app_type = args.application
-        config = ProcessingConfig(application_type=app_type)
+        config = ProcessingConfig(application_type=app_type, linear_light=args.linear)
 
         # Load preset if specified
         if args.preset:
@@ -133,6 +143,9 @@ def main():
             except ImageProcessingError as e:
                 print(f"Error: {e}")
                 return 1
+
+        if args.linear:
+            config = config.merge({"linear_light": True})
 
         # Batch analysis mode
         if args.analyze_batch:
