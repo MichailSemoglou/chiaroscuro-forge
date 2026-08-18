@@ -322,18 +322,26 @@ class TestColorPreservationStage(unittest.TestCase):
 
     def test_color_preservation_lab_linear_light_matches_encoding(self):
         """LAB preservation in linear-light mode uses sRGB conversion on both sides."""
-        original = np.array([[[0.5, 0.4, 0.3], [0.7, 0.6, 0.5]]], dtype=float)
-        enhanced = np.array([[[0.6, 0.5, 0.4], [0.8, 0.7, 0.6]]], dtype=float)
+        original = np.array([[[0.03, 0.18, 0.62], [0.71, 0.14, 0.05]]], dtype=float)
+        enhanced = np.array([[[0.48, 0.09, 0.27], [0.08, 0.53, 0.22]]], dtype=float)
         context = {
             "original_for_color": original,
             "color_preservation": "lab",
-            "color_preservation_strength": 0.8,
+            "color_preservation_strength": 0.65,
             "linear_light": True,
         }
+
         result = self.stage.process(enhanced, context)
-        self.assertEqual(result.shape, enhanced.shape)
-        self.assertTrue(np.all(result >= 0.0))
-        self.assertTrue(np.all(result <= 1.0))
+
+        expected = np.array(
+            [
+                [
+                    [0.193259949270, 0.153710665546, 0.483637070718],
+                    [0.655608166745, 0.366447549718, 0.144496749491],
+                ]
+            ]
+        )
+        np.testing.assert_allclose(result, expected, rtol=0.0, atol=1e-10)
 
     def test_color_preservation_ratio(self):
         """Test ratio-based preservation."""
