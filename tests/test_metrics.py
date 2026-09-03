@@ -5,18 +5,21 @@ Testing all quality metrics functions including SSIM, MS-SSIM, feature similarit
 histogram similarity, perceptual metrics, and quality score calculation.
 """
 
+import importlib.util
 import unittest
 
 import numpy as np
 from skimage.metrics import structural_similarity as skimage_ssim
 from skimage.transform import pyramid_gaussian
 
+import chiaroscuro_forge.metrics as metrics_module
 from chiaroscuro_forge.exceptions import ImageProcessingError
 from chiaroscuro_forge.metrics import (
     calculate_perceptual_metrics,
     calculate_quality_score,
     feature_similarity,
     histogram_similarity,
+    lpips_similarity,
     ms_ssim,
     ssim,
 )
@@ -673,6 +676,78 @@ class TestQualityScore(unittest.TestCase):
         self.assertIsInstance(score_general, float)
         self.assertIsInstance(score_medical, float)
         self.assertIsInstance(score_art, float)
+
+
+class TestMSSSIMDegenerateInputs(unittest.TestCase):
+    """Test MS-SSIM on constant and very small images."""
+
+    def test_constant_identical_images(self):
+        """Test that identical constant images score 1.0."""
+        img = np.full((64, 64), 0.2)
+        self.assertAlmostEqual(ms_ssim(img, img), 1.0, places=5)
+
+    def test_constant_different_images(self):
+        """Test that two different constant images score below 1.0."""
+        img1 = np.full((64, 64), 0.2)
+        img2 = np.full((64, 64), 0.8)
+        score = ms_ssim(img1, img2)
+        self.assertGreater(score, 0.0)
+        self.assertLess(score, 1.0)
+
+    def test_tiny_image_renormalizes_levels(self):
+        """Test that a tiny image reduces pyramid levels without error."""
+        img = np.random.rand(4, 4)
+        self.assertAlmostEqual(ms_ssim(img, img), 1.0, places=5)
+
+
+class _RecordingLPIPS:
+    """Stand-in for lpips.LPIPS that records the tensors it receives."""
+
+    def __init__(self):
+        self.seen_min = None
+        self.seen_max = None
+        self.seen_mean = None
+
+    def __call__(self, t1, t2):
+        self.seen_min = min(float(t1.min()), float(t2.min()))
+        self.seen_max = max(float(t1.max()), float(t2.max()))
+        self.seen_mean = float(t1.mean())
+
+        class _Distance:
+            @staticmethod
+            def item():
+                return 0.25
+
+        return _Distance()
+
+
+class TestLPIPSInputScaling(unittest.TestCase):
+    """Test that lpips_similarity feeds [-1, 1] tensors to the network."""
+
+    def setUp(self):
+        if importlib.util.find_spec("lpips") is None or importlib.util.find_spec("torch") is None:
+            self.skipTest("lpips and torch are not installed")
+        self.stub = _RecordingLPIPS()
+        self._previous_model = metrics_module._lpips_model
+        metrics_module._lpips_model = self.stub
+
+    def tearDown(self):
+        metrics_module._lpips_model = self._previous_model
+
+    def test_color_inputs_reach_network_in_calibration_range(self):
+        """Test that a constant 0.75 color image arrives as 0.5, not 0.75."""
+        img = np.full((32, 32, 3), 0.75)
+        result = lpips_similarity(img, img)
+        self.assertAlmostEqual(result, 0.75)
+        self.assertGreaterEqual(self.stub.seen_min, -1.0 - 1e-6)
+        self.assertLessEqual(self.stub.seen_max, 1.0 + 1e-6)
+        self.assertAlmostEqual(self.stub.seen_mean, 0.5, places=5)
+
+    def test_grayscale_inputs_reach_network_in_calibration_range(self):
+        """Test that a constant 0.25 grayscale image arrives as -0.5."""
+        img = np.full((32, 32), 0.25)
+        lpips_similarity(img, img)
+        self.assertAlmostEqual(self.stub.seen_mean, -0.5, places=5)
 
 
 if __name__ == "__main__":
