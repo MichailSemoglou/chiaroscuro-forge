@@ -2,10 +2,8 @@
 Configuration Constants for Chiaroscuro Forge
 
 This module contains all configuration constants used throughout the package,
-including default values, thresholds, and quality score weights.
+including default values and thresholds.
 """
-
-from typing import Dict
 
 # SSIM Calculation Constants
 DEFAULT_WIN_SIZE = 7
@@ -108,60 +106,6 @@ MIN_TILE_SIZE = 128
 
 MAX_TILE_SIZE = 2048
 """Maximum allowed tile size"""
-
-# Quality Score Weights
-QUALITY_WEIGHTS: Dict[str, Dict[str, float]] = {
-    "general": {
-        "ssim": 0.30,
-        "ms_ssim": 0.15,
-        "psnr": 0.15,
-        "mse": 0.10,
-        "feature_similarity": 0.10,
-        "edge_similarity": 0.10,
-        "hist_correlation": 0.05,
-        "saliency_similarity": 0.05,
-    },
-    "photography": {
-        "ssim": 0.20,
-        "ms_ssim": 0.20,
-        "psnr": 0.10,
-        "mse": 0.05,
-        "feature_similarity": 0.15,
-        "edge_similarity": 0.10,
-        "hist_correlation": 0.10,
-        "saliency_similarity": 0.10,
-    },
-    "medical": {
-        "ssim": 0.35,
-        "ms_ssim": 0.25,
-        "psnr": 0.20,
-        "mse": 0.10,
-        "feature_similarity": 0.05,
-        "edge_similarity": 0.05,
-        "hist_correlation": 0.00,
-        "saliency_similarity": 0.00,
-    },
-    "document": {
-        "ssim": 0.25,
-        "ms_ssim": 0.15,
-        "psnr": 0.10,
-        "mse": 0.05,
-        "feature_similarity": 0.25,
-        "edge_similarity": 0.20,
-        "hist_correlation": 0.00,
-        "saliency_similarity": 0.00,
-    },
-    "art": {
-        "ssim": 0.15,
-        "ms_ssim": 0.10,
-        "psnr": 0.05,
-        "mse": 0.05,
-        "feature_similarity": 0.20,
-        "edge_similarity": 0.15,
-        "hist_correlation": 0.15,
-        "saliency_similarity": 0.15,
-    },
-}
 
 # Valid Application Types
 VALID_APP_TYPES = ["general", "photography", "medical", "document", "art"]

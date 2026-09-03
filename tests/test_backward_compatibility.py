@@ -129,13 +129,11 @@ class TestBackwardCompatibility(unittest.TestCase):
         try:
             from chiaroscuro_forge.constants import (
                 DEFAULT_WIN_SIZE,
-                QUALITY_WEIGHTS,
                 VALID_APP_TYPES,
             )
 
             self.assertIsInstance(DEFAULT_WIN_SIZE, int)
             self.assertIsInstance(VALID_APP_TYPES, list)
-            self.assertIsInstance(QUALITY_WEIGHTS, dict)
 
         except ImportError as e:
             self.fail(f"Failed to import constants: {e}")
