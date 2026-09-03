@@ -16,9 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - The MS-SSIM docstring documents four implementation departures from the reference code of Wang, Simoncelli, and Bovik (2003)
 
-### Removed
+### Deprecated
 
-- `QUALITY_WEIGHTS` constant from `constants.py`; the composite score weights live in `calculate_quality_score`
+- `QUALITY_WEIGHTS` constant from `constants.py`, scheduled for removal in 3.0.0; the composite score weights live in `calculate_quality_score`
 
 ## [2.1.0] – 2026-08-18
 
