@@ -26,7 +26,7 @@ For more examples, see the documentation at:
 https://github.com/MichailSemoglou/chiaroscuro-forge
 """
 
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 __author__ = "Michail Semoglou"
 __email__ = "m.semoglou@tongji.edu.cn"
 __license__ = "MIT"

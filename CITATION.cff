@@ -2,9 +2,8 @@ cff-version: 1.2.0
 message: "If you use Chiaroscuro Forge in your research, please cite it."
 title: "Chiaroscuro Forge"
 type: software
-version: "2.1.0"
-doi: "10.5281/zenodo.21989954"
-date-released: 2026-08-18
+version: "2.2.0"
+date-released: 2026-09-03
 authors:
   - family-names: "Semoglou"
     given-names: "Michail"
@@ -31,4 +30,4 @@ abstract: >-
   Features automatic parameter detection, advanced color preservation, quality
   metrics, parallel batch processing, GPU acceleration (CUDA/OpenCL/Metal),
   REST API with authentication, and distributed processing support. Includes
-  comprehensive testing with 425 tests and coverage enforcement.
+  comprehensive testing with 561 tests and coverage enforcement.
