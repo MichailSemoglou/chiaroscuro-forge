@@ -271,14 +271,15 @@ class ContrastStage(PipelineStage):
         if image.ndim == 3:
             # Convert to LAB for processing
             lab_image = color.rgb2lab(image)
-            l_channel = lab_image[:, :, 0]
+            # Methods operate on [0, 1]; L natively spans [0, 100]
+            l_channel = lab_image[:, :, 0] / 100.0
 
             # Apply method to L channel
             l_enhanced = self._apply_method(l_channel, equalize_method, context)
 
             # Reconstruct
             lab_enhanced = lab_image.copy()
-            lab_enhanced[:, :, 0] = l_enhanced
+            lab_enhanced[:, :, 0] = np.clip(l_enhanced, 0, 1) * 100.0
             enhanced = color.lab2rgb(lab_enhanced)
         else:
             # Grayscale

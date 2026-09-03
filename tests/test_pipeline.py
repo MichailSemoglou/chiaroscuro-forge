@@ -178,7 +178,7 @@ class TestContrastStage(unittest.TestCase):
 
     def test_contrast_standard(self):
         """Test standard contrast enhancement."""
-        context = {"contrast_method": "standard", "contrast_strength": 1.5}
+        context = {"equalize": True, "equalize_method": "standard"}
         result = self.stage.process(self.image, context)
 
         self.assertEqual(result.shape, self.image.shape)
@@ -187,14 +187,36 @@ class TestContrastStage(unittest.TestCase):
 
     def test_contrast_clahe(self):
         """Test CLAHE contrast enhancement."""
-        context = {"contrast_method": "clahe", "contrast_strength": 1.0}
+        context = {"equalize": True, "equalize_method": "clahe"}
         result = self.stage.process(self.image, context)
 
         self.assertEqual(result.shape, self.image.shape)
+        # CLAHE must actually modify the image
+        self.assertFalse(np.allclose(result, self.image))
+
+    def test_contrast_clahe_color_random(self):
+        """Test that CLAHE runs on color images."""
+        image = np.random.rand(50, 50, 3)
+        context = {"equalize": True, "equalize_method": "clahe"}
+        result = self.stage.process(image, context)
+
+        self.assertEqual(result.shape, image.shape)
+        self.assertGreaterEqual(np.min(result), 0.0)
+        self.assertLessEqual(np.max(result), 1.0)
+        self.assertFalse(np.allclose(result, image))
+
+    def test_contrast_adaptive_gamma_dark_color(self):
+        """Test that adaptive gamma brightens a dark color image."""
+        image = np.full((50, 50, 3), 0.1)
+        context = {"equalize": True, "equalize_method": "adaptive_gamma"}
+        result = self.stage.process(image, context)
+
+        self.assertEqual(result.shape, image.shape)
+        self.assertGreater(np.mean(result), np.mean(image))
 
     def test_contrast_stretch(self):
         """Test contrast stretching."""
-        context = {"contrast_method": "stretch"}
+        context = {"equalize": True, "equalize_method": "stretch"}
         result = self.stage.process(self.image, context)
 
         self.assertEqual(result.shape, self.image.shape)
