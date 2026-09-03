@@ -81,7 +81,7 @@ setup(
             "pytest>=7.4.0",
             "pytest-cov>=4.1.0",
             "black>=24.4.1",
-            "flake8>=6.1.0",
+            "flake8>=7.3.0",
             "mypy>=1.5.0",
         ],
         "perceptual": [
