@@ -5,7 +5,20 @@ All notable changes to Chiaroscuro Forge are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [2.2.0] – 2026-09-03
+
+### Fixed
+
+- Color contrast enhancement now runs the LAB L channel in [0, 1] and rescales afterward; CLAHE raised an error on color images with scikit-image 0.26, and adaptive gamma never triggered on color images
+- LPIPS similarity scales inputs to [-1, 1], the calibration of the published networks; reported values shift slightly from previous releases
+
+### Changed
+
+- The MS-SSIM docstring documents four implementation departures from the reference code of Wang, Simoncelli, and Bovik (2003)
+
+### Deprecated
+
+- `QUALITY_WEIGHTS` constant from `constants.py`, scheduled for removal in 3.0.0; the composite score weights live in `calculate_quality_score`
 
 ## [2.1.0] – 2026-08-18
 
@@ -20,14 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - The linear-light mode remains opt-in to preserve backward compatibility with the default gamma-encoded workflow
 - MS-SSIM exposes a compatibility mode for the historical per-scale averaging behavior alongside the current multiscale implementation
 
-## [2.0.1] — 2026-08-16
+## [2.0.1] – 2026-08-16
 
 ### Fixed
 
 - Release metadata update for PyPI publishing compatibility
 - CI publication metadata support updated for the current GitHub Actions platform
 
-## [2.0.0] — 2026-08-03
+## [2.0.0] – 2026-08-03
 
 ### Added
 
@@ -68,9 +81,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added (community infrastructure)
 
-- `SECURITY.md` — vulnerability reporting policy with deployment guidance
-- `CODE_OF_CONDUCT.md` — Contributor Covenant 2.0
-- `CHANGELOG.md` — Keep a Changelog format
+- `SECURITY.md` – vulnerability reporting policy with deployment guidance
+- `CODE_OF_CONDUCT.md` – Contributor Covenant 2.0
+- `CHANGELOG.md` – Keep a Changelog format
 - Issue templates (`bug_report.md`, `feature_request.md`), PR template
 - `CODEOWNERS`, `dependabot.yml`
 
@@ -82,7 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - CORS restricted to localhost; security headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`)
 - `pip-audit` runs in CI
 
-## [1.0.1] — 2026-02-03
+## [1.0.1] – 2026-02-03
 
 ### Fixed
 
@@ -101,7 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Deprecated `chiaroscuro_forge.py` legacy entry-point
 
-## [1.0.0] — 2025-11-15
+## [1.0.0] – 2025-11-15
 
 ### Added
 

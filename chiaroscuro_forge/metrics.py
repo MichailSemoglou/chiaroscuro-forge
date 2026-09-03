@@ -103,6 +103,17 @@ def ms_ssim(
     ------
     ImageProcessingError
         If input validation fails or images are too small
+
+    Notes
+    -----
+    This implementation departs from the authors' reference code in four
+    ways: the luminance, contrast, and structure maps are clipped to
+    [0, 1] per term; the term maps are reduced by full-image means; local
+    statistics use a Gaussian filter with sigma 1.5 instead of the
+    reference 11 x 11 circular-symmetric Gaussian window; and the weight
+    vector is renormalized when fewer levels than requested fit the image.
+    The published default weights and the coarsest-scale luminance rule
+    follow Wang et al. (2003) exactly.
     """
     validate_array(img1, "img1")
     validate_array(img2, "img2")
@@ -422,6 +433,9 @@ def lpips_similarity(
     AlexNet or VGG network. Requires the optional ``lpips`` package.
     Falls back to MS-SSIM via ``ms_ssim`` when not installed.
 
+    Input arrays are scaled from [0, 1] to [-1, 1] before inference,
+    matching the calibration of the published networks.
+
     LPIPS is a distance metric (lower = more similar), correlating with
     human judgments at r ≈ 0.9 versus SSIM's r ≈ 0.7 (Zhang et al.,
     CVPR 2018).
@@ -462,8 +476,9 @@ def lpips_similarity(
                 _lpips_model = lpips.LPIPS(net="alex", verbose=False)
             loss_fn = _lpips_model
 
-        t1 = torch.from_numpy(img_as_float(img1).clip(0, 1)).float()
-        t2 = torch.from_numpy(img_as_float(img2).clip(0, 1)).float()
+        # The published LPIPS networks are calibrated on inputs in [-1, 1]
+        t1 = torch.from_numpy(img_as_float(img1).clip(0, 1) * 2.0 - 1.0).float()
+        t2 = torch.from_numpy(img_as_float(img2).clip(0, 1) * 2.0 - 1.0).float()
 
         if t1.ndim == 2:
             t1 = t1.unsqueeze(0).unsqueeze(0)

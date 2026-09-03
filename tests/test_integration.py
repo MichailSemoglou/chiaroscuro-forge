@@ -378,6 +378,24 @@ class TestEndToEndWorkflows(unittest.TestCase):
         processed, _ = process_image(self.random_path, config=config)
         self.assertEqual(processed.shape, (100, 100, 3))
 
+    def test_application_type_document_pipeline(self):
+        """Test that the document preset processes a color image (CLAHE)."""
+        config = ProcessingConfig.preset("document")
+        config = config.merge({"calculate_metrics": False})
+        processed, _ = process_image(self.random_path, config=config)
+        self.assertEqual(processed.shape, (100, 100, 3))
+        self.assertGreaterEqual(processed.min(), 0.0)
+        self.assertLessEqual(processed.max(), 1.0)
+
+    def test_application_type_medical_pipeline_default_method(self):
+        """Test that the medical preset processes a color image unmodified."""
+        config = ProcessingConfig.preset("medical")
+        config = config.merge({"calculate_metrics": False})
+        processed, _ = process_image(self.random_path, config=config)
+        self.assertEqual(processed.shape, (100, 100, 3))
+        self.assertGreaterEqual(processed.min(), 0.0)
+        self.assertLessEqual(processed.max(), 1.0)
+
 
 class TestTilingWorkflows(unittest.TestCase):
     """End-to-end tests with explicit tiling control."""

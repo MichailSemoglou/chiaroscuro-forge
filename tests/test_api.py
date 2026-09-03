@@ -427,8 +427,8 @@ class TestAPIEndpoints:
     def test_create_first_key_bootstrap(self, client, monkeypatch):
         """Test creating the first key when bootstrap is explicitly authorized."""
         api_key_manager._keys.clear()
-        monkeypatch.delenv("CHIAROSCURO_API_KEY", raising=False)
         monkeypatch.setenv("CHIAROSCURO_API_KEY", "bootstrap-key")
+        monkeypatch.setenv("CHIAROSCURO_ALLOW_BOOTSTRAP", "true")
         response = client.post(
             "/api/v1/keys",
             headers={"X-API-Key": "bootstrap-key"},
@@ -440,7 +440,7 @@ class TestAPIEndpoints:
         assert len(api_key_manager.list_keys()) == 1
 
     def test_create_first_key_with_bootstrap_flag(self, client, monkeypatch):
-        """Test creating the first key when bootstrap is enabled via flag."""
+        """Test that the bootstrap flag without the environment key is rejected."""
         api_key_manager._keys.clear()
         monkeypatch.delenv("CHIAROSCURO_API_KEY", raising=False)
         monkeypatch.setenv("CHIAROSCURO_ALLOW_BOOTSTRAP", "true")
@@ -449,8 +449,21 @@ class TestAPIEndpoints:
             headers={"X-API-Key": "bootstrap-flag-key"},
             data={"name": "Bootstrap Flag Key", "rate_limit": "100"},
         )
-        assert response.status_code == 200
-        assert len(api_key_manager.list_keys()) == 1
+        assert response.status_code == 401
+        assert len(api_key_manager.list_keys()) == 0
+
+    def test_create_first_key_env_key_without_bootstrap_flag(self, client, monkeypatch):
+        """Test that the environment key without the bootstrap flag is rejected."""
+        api_key_manager._keys.clear()
+        monkeypatch.setenv("CHIAROSCURO_API_KEY", "bootstrap-key")
+        monkeypatch.delenv("CHIAROSCURO_ALLOW_BOOTSTRAP", raising=False)
+        response = client.post(
+            "/api/v1/keys",
+            headers={"X-API-Key": "bootstrap-key"},
+            data={"name": "Key Only", "rate_limit": "100"},
+        )
+        assert response.status_code == 401
+        assert len(api_key_manager.list_keys()) == 0
 
     def test_create_first_key_requires_explicit_bootstrap_control(self, client, monkeypatch):
         """Test that bootstrap without explicit control is rejected."""

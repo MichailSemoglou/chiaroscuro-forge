@@ -133,7 +133,7 @@ if FASTAPI_AVAILABLE:
         uptime_seconds: float
 
     class HealthResponse(APIResponse):
-        data: Optional[HealthInfo] = None
+        data: Optional[HealthInfo] = None  # type: ignore[assignment]
 
 else:
     ProcessingParams = None  # type: ignore[assignment,misc]
@@ -696,7 +696,7 @@ if FASTAPI_AVAILABLE:
             )
 
 else:
-    app = None
+    app = None  # type: ignore[assignment]
     logger.warning(
         "FastAPI not installed. API functionality unavailable. "
         "Install with: pip install 'fastapi[all]' uvicorn"
