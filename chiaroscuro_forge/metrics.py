@@ -103,6 +103,17 @@ def ms_ssim(
     ------
     ImageProcessingError
         If input validation fails or images are too small
+
+    Notes
+    -----
+    This implementation departs from the authors' reference code in four
+    ways: the luminance, contrast, and structure maps are clipped to
+    [0, 1] per term; the term maps are reduced by full-image means; local
+    statistics use a Gaussian filter with sigma 1.5 instead of the
+    reference 11 x 11 circular-symmetric Gaussian window; and the weight
+    vector is renormalized when fewer levels than requested fit the image.
+    The published default weights and the coarsest-scale luminance rule
+    follow Wang et al. (2003) exactly.
     """
     validate_array(img1, "img1")
     validate_array(img2, "img2")
