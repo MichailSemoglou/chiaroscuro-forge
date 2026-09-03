@@ -5,6 +5,8 @@ This module contains all configuration constants used throughout the package,
 including default values and thresholds.
 """
 
+import warnings
+
 # SSIM Calculation Constants
 DEFAULT_WIN_SIZE = 7
 """Default window size for SSIM calculation"""
@@ -180,3 +182,71 @@ DENIED_PATH_PATTERNS = [
     "\x00",  # Null byte injection
 ]
 """Patterns that indicate potential path traversal attacks"""
+
+
+# Deprecated compatibility alias, scheduled for removal in 3.0.0
+_DEPRECATED_QUALITY_WEIGHTS = {
+    "general": {
+        "ssim": 0.30,
+        "ms_ssim": 0.15,
+        "psnr": 0.15,
+        "mse": 0.10,
+        "feature_similarity": 0.10,
+        "edge_similarity": 0.10,
+        "hist_correlation": 0.05,
+        "saliency_similarity": 0.05,
+    },
+    "photography": {
+        "ssim": 0.20,
+        "ms_ssim": 0.20,
+        "psnr": 0.10,
+        "mse": 0.05,
+        "feature_similarity": 0.15,
+        "edge_similarity": 0.10,
+        "hist_correlation": 0.10,
+        "saliency_similarity": 0.10,
+    },
+    "medical": {
+        "ssim": 0.35,
+        "ms_ssim": 0.25,
+        "psnr": 0.20,
+        "mse": 0.10,
+        "feature_similarity": 0.05,
+        "edge_similarity": 0.05,
+        "hist_correlation": 0.00,
+        "saliency_similarity": 0.00,
+    },
+    "document": {
+        "ssim": 0.25,
+        "ms_ssim": 0.15,
+        "psnr": 0.10,
+        "mse": 0.05,
+        "feature_similarity": 0.25,
+        "edge_similarity": 0.20,
+        "hist_correlation": 0.00,
+        "saliency_similarity": 0.00,
+    },
+    "art": {
+        "ssim": 0.15,
+        "ms_ssim": 0.10,
+        "psnr": 0.05,
+        "mse": 0.05,
+        "feature_similarity": 0.20,
+        "edge_similarity": 0.15,
+        "hist_correlation": 0.15,
+        "saliency_similarity": 0.15,
+    },
+}
+
+
+def __getattr__(name):
+    """Provide the deprecated QUALITY_WEIGHTS constant with a warning."""
+    if name == "QUALITY_WEIGHTS":
+        warnings.warn(
+            "QUALITY_WEIGHTS is deprecated and will be removed in 3.0.0; "
+            "the composite score weights live in calculate_quality_score",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return _DEPRECATED_QUALITY_WEIGHTS
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -138,6 +138,17 @@ class TestBackwardCompatibility(unittest.TestCase):
         except ImportError as e:
             self.fail(f"Failed to import constants: {e}")
 
+    def test_quality_weights_deprecated_alias(self):
+        """Test that QUALITY_WEIGHTS still imports, with a deprecation warning."""
+        import warnings
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            from chiaroscuro_forge.constants import QUALITY_WEIGHTS
+
+        self.assertIsInstance(QUALITY_WEIGHTS, dict)
+        self.assertTrue(any(issubclass(w.category, DeprecationWarning) for w in caught))
+
     def test_validation_available(self):
         """Test that validation utilities are accessible."""
         try:
