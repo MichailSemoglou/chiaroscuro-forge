@@ -1,6 +1,6 @@
 numpy>=1.22.0
 scipy>=1.7.0
-scikit-image>=0.20.0
+scikit-image>=0.25.2
 Pillow>=10.4.0
 
 # Optional GPU acceleration dependencies
