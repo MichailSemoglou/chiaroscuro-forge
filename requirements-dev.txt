@@ -7,7 +7,7 @@
 pytest>=7.4.0
 pytest-cov>=4.1.0
 pytest-xdist>=3.8.0
-hypothesis>=6.0.0
+hypothesis>=6.168.3
 
 # Code Quality
 black>=26.3.1
