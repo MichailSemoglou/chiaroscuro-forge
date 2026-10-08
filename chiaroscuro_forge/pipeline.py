@@ -269,8 +269,10 @@ class ContrastStage(PipelineStage):
         context["pre_contrast_image"] = image.copy()
 
         if image.ndim == 3:
-            # Convert to LAB for processing
-            lab_image = color.rgb2lab(image)
+            # rgb2lab expects sRGB-encoded input; encode first in linear mode
+            linear_light = context.get("linear_light", False)
+            srgb_image = linear_to_srgb(image) if linear_light else image
+            lab_image = color.rgb2lab(srgb_image)
             # Methods operate on [0, 1]; L natively spans [0, 100]
             l_channel = lab_image[:, :, 0] / 100.0
 
@@ -281,6 +283,8 @@ class ContrastStage(PipelineStage):
             lab_enhanced = lab_image.copy()
             lab_enhanced[:, :, 0] = np.clip(l_enhanced, 0, 1) * 100.0
             enhanced = color.lab2rgb(lab_enhanced)
+            if linear_light:
+                enhanced = srgb_to_linear(enhanced)
         else:
             # Grayscale
             enhanced = self._apply_method(image, equalize_method, context)
