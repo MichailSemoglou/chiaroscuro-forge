@@ -5,6 +5,14 @@ All notable changes to Chiaroscuro Forge are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.2.1] – 2026-10-08
+
+### Fixed
+
+- Linear-light mode applied the sRGB transfer function twice in the contrast stage; the stage now encodes to sRGB before LAB conversion and decodes afterward
+- LAB color preservation clipped out-of-gamut colors to the sRGB cube, shifting hue and lightness on saturated colors; out-of-gamut colors now reduce chroma at constant hue and lightness
+- `--application` changed only the composite score weighting; the document, medical, photography, and art profiles now apply to processing
+
 ## [2.2.0] – 2026-09-03
 
 ### Fixed
