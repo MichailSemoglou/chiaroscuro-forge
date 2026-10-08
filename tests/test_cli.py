@@ -9,6 +9,7 @@ from unittest.mock import patch
 from PIL import Image
 
 from chiaroscuro_forge.cli import main
+from chiaroscuro_forge.config import ProcessingConfig
 from chiaroscuro_forge.presets import save_preset
 
 
@@ -110,6 +111,33 @@ class TestCLI(unittest.TestCase):
                 self.assertEqual(result, 0)
                 output = fake_out.getvalue()
                 self.assertIn("Loaded preset", output)
+
+    def test_application_flag_uses_preset(self):
+        """Test that --application routes through ProcessingConfig.preset."""
+        argv = ["cli", self.input_path, "-o", self.output_path, "-a", "document"]
+        with (
+            patch("sys.argv", argv),
+            patch.object(ProcessingConfig, "preset", wraps=ProcessingConfig.preset) as preset_spy,
+            patch("sys.stdout", new=StringIO()),
+        ):
+            result = main()
+
+        self.assertEqual(result, 0)
+        preset_spy.assert_called_once_with("document")
+        self.assertTrue(os.path.exists(self.output_path))
+
+    def test_general_application_skips_preset(self):
+        """Test that the default application type does not call preset."""
+        argv = ["cli", self.input_path, "-o", self.output_path]
+        with (
+            patch("sys.argv", argv),
+            patch.object(ProcessingConfig, "preset", wraps=ProcessingConfig.preset) as preset_spy,
+            patch("sys.stdout", new=StringIO()),
+        ):
+            result = main()
+
+        self.assertEqual(result, 0)
+        preset_spy.assert_not_called()
 
     def test_single_image_with_invalid_preset(self):
         """Test error with invalid preset."""

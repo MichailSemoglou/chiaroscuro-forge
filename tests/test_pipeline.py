@@ -1,15 +1,14 @@
-"""
-Unit tests for pipeline.py - Phase 2.1: Testing Framework
+"""Unit tests for pipeline.py.
 
-Tests each pipeline stage independently to ensure correctness,
-error handling, and edge case coverage.
-
-Target: 80%+ coverage for pipeline.py (currently 24%)
+Tests each pipeline stage independently for correctness, error handling,
+and edge case coverage.
 """
 
 import unittest
+import warnings
 
 import numpy as np
+from skimage import color
 
 from chiaroscuro_forge.exceptions import ImageProcessingError
 from chiaroscuro_forge.pipeline import (
@@ -24,6 +23,8 @@ from chiaroscuro_forge.pipeline import (
     SharpenStage,
     ToneMappingStage,
     create_standard_pipeline,
+    linear_to_srgb,
+    srgb_to_linear,
 )
 
 
@@ -167,6 +168,28 @@ class TestSharpenStage(unittest.TestCase):
         np.testing.assert_array_equal(result, self.image)
 
 
+class TestEOTFHelpers(unittest.TestCase):
+    """Test the sRGB electro-optical transfer function pair."""
+
+    def test_roundtrip_srgb_linear_srgb(self):
+        """Test that encoding after decoding returns the input."""
+        x = np.linspace(0.0, 1.0, 256)
+        np.testing.assert_allclose(linear_to_srgb(srgb_to_linear(x)), x, atol=1e-12)
+
+    def test_roundtrip_linear_srgb_linear(self):
+        """Test that decoding after encoding returns the input."""
+        x = np.linspace(0.0, 1.0, 256)
+        np.testing.assert_allclose(srgb_to_linear(linear_to_srgb(x)), x, atol=1e-12)
+
+    def test_known_values(self):
+        """Test the piecewise breakpoints and endpoints."""
+        self.assertAlmostEqual(srgb_to_linear(np.array([1.0]))[0], 1.0)
+        self.assertAlmostEqual(linear_to_srgb(np.array([1.0]))[0], 1.0)
+        self.assertAlmostEqual(srgb_to_linear(np.array([0.04045]))[0], 0.04045 / 12.92)
+        self.assertAlmostEqual(linear_to_srgb(np.array([0.0031308]))[0], 12.92 * 0.0031308)
+        self.assertAlmostEqual(linear_to_srgb(np.array([0.5]))[0], 1.055 * 0.5 ** (1 / 2.4) - 0.055)
+
+
 class TestContrastStage(unittest.TestCase):
     """Test ContrastStage functionality."""
 
@@ -228,6 +251,17 @@ class TestContrastStage(unittest.TestCase):
         """Test that missing method returns original."""
         result = self.stage.process(self.image, {})
         np.testing.assert_array_equal(result, self.image)
+
+    def test_contrast_linear_mode_matches_srgb_path(self):
+        """Test that linear mode encodes to sRGB before LAB conversion."""
+        image_srgb = np.random.rand(20, 20, 3)
+        image_linear = srgb_to_linear(image_srgb)
+        out_srgb = self.stage.process(image_srgb, {"equalize": True, "equalize_method": "clahe"})
+        out_linear = self.stage.process(
+            image_linear,
+            {"equalize": True, "equalize_method": "clahe", "linear_light": True},
+        )
+        np.testing.assert_allclose(linear_to_srgb(out_linear), out_srgb, atol=1e-6)
 
 
 class TestLinearizeStage(unittest.TestCase):
@@ -341,6 +375,34 @@ class TestColorPreservationStage(unittest.TestCase):
         result = self.stage.process(self.processed, context)
 
         self.assertEqual(result.shape, self.processed.shape)
+
+    def test_preserve_lab_out_of_gamut_keeps_hue(self):
+        """Test that out-of-gamut colors keep hue instead of clipping."""
+        original = np.zeros((10, 10, 3))
+        original[:, :, 0] = 1.0
+        enhanced = np.full((10, 10, 3), 0.95)
+        context = {
+            "original_for_color": original,
+            "color_preservation": "lab",
+            "color_preservation_strength": 1.0,
+        }
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            result = self.stage.process(enhanced, context)
+
+        self.assertFalse(
+            any("clipped" in str(w.message) for w in caught),
+            "gamut mapping should not clip",
+        )
+        self.assertGreaterEqual(result.min(), 0.0)
+        self.assertLessEqual(result.max(), 1.0)
+
+        intended_lab = color.rgb2lab(np.array([[[1.0, 0.0, 0.0]]]))[0, 0]
+        intended_hue = np.arctan2(intended_lab[2], intended_lab[1])
+        result_lab = color.rgb2lab(result)
+        result_hue = np.arctan2(result_lab[..., 2], result_lab[..., 1])
+        np.testing.assert_allclose(result_hue, intended_hue, atol=np.deg2rad(3))
+        self.assertGreater(result_lab[..., 0].mean(), 80.0)
 
     def test_color_preservation_lab_linear_light_matches_encoding(self):
         """LAB preservation in linear-light mode uses sRGB conversion on both sides."""
