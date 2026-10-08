@@ -132,7 +132,11 @@ def main():
             return 1
 
         app_type = args.application
-        config = ProcessingConfig(application_type=app_type, linear_light=args.linear)
+        if app_type == "general":
+            config = ProcessingConfig(application_type=app_type, linear_light=args.linear)
+        else:
+            # Application profiles adjust processing parameters, not only metrics
+            config = ProcessingConfig.preset(app_type).merge({"linear_light": args.linear})
 
         # Load preset if specified
         if args.preset:
