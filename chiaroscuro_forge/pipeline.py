@@ -7,6 +7,7 @@ ability to switch between the default sRGB path and the opt-in linear-light
 mode.
 """
 
+import warnings
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Tuple
 
@@ -34,6 +35,52 @@ def linear_to_srgb(image: np.ndarray) -> np.ndarray:
         12.92 * image,
         1.055 * (image ** (1.0 / 2.4)) - 0.055,
     )
+
+
+# D65-referred XYZ to linear sRGB matrix (IEC 61966-2-1)
+_XYZ_TO_LINEAR_SRGB = np.array(
+    [
+        [3.2404542, -1.5371385, -0.4985314],
+        [-0.9692660, 1.8760108, 0.0415560],
+        [0.0556434, -0.2040259, 1.0572252],
+    ]
+)
+
+
+def _lab_to_srgb_gamut_mapped(lab: np.ndarray, iterations: int = 12) -> np.ndarray:
+    """Convert LAB to sRGB, reducing chroma of out-of-gamut colors.
+
+    skimage's lab2rgb clips to the sRGB cube, which shifts hue and
+    lightness on saturated colors. Out-of-gamut pixels are instead mapped
+    toward the achromatic axis at constant hue and lightness.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        rgb = color.lab2rgb(lab)
+
+    rgb_linear = color.lab2xyz(lab) @ _XYZ_TO_LINEAR_SRGB.T
+    out_of_gamut = np.any((rgb_linear < 0.0) | (rgb_linear > 1.0), axis=2)
+    if not np.any(out_of_gamut):
+        return np.asarray(rgb)
+
+    lightness = lab[:, :, 0][out_of_gamut]
+    a_channel = lab[:, :, 1][out_of_gamut]
+    b_channel = lab[:, :, 2][out_of_gamut]
+
+    lo = np.zeros_like(lightness)
+    hi = np.ones_like(lightness)
+    for _ in range(iterations):
+        mid = 0.5 * (lo + hi)
+        trial_lab = np.stack([lightness, a_channel * mid, b_channel * mid], axis=1)
+        trial_linear = color.lab2xyz(trial_lab) @ _XYZ_TO_LINEAR_SRGB.T
+        in_gamut = np.all((trial_linear >= 0.0) & (trial_linear <= 1.0), axis=1)
+        lo = np.where(in_gamut, mid, lo)
+        hi = np.where(in_gamut, hi, mid)
+
+    mapped_lab = np.stack([lightness, a_channel * lo, b_channel * lo], axis=1)
+    mapped_linear = color.lab2xyz(mapped_lab) @ _XYZ_TO_LINEAR_SRGB.T
+    rgb[out_of_gamut] = linear_to_srgb(np.clip(mapped_linear, 0.0, None))
+    return np.asarray(rgb)
 
 
 class PipelineStage(ABC):
@@ -379,7 +426,7 @@ class ColorPreservationStage(PipelineStage):
             strength * lab_original[:, :, 2] + (1 - strength) * lab_enhanced[:, :, 2]
         )
 
-        lab_rgb = color.lab2rgb(lab_result)
+        lab_rgb = _lab_to_srgb_gamut_mapped(lab_result)
         if linear_light:
             lab_rgb = srgb_to_linear(lab_rgb)
         return np.asarray(np.clip(lab_rgb, 0.0, 1.0))
