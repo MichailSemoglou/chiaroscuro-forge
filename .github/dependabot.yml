@@ -17,6 +17,7 @@ updates:
       - dependency-name: "numpy"
       - dependency-name: "pylint"
       - dependency-name: "scikit-image"
+      - dependency-name: "types-setuptools"
       - dependency-name: "uvicorn"
 
   - package-ecosystem: github-actions
