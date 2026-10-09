@@ -3,7 +3,8 @@ message: "If you use Chiaroscuro Forge in your research, please cite it."
 title: "Chiaroscuro Forge"
 type: software
 version: "2.2.1"
-date-released: 2026-10-08
+doi: "10.5281/zenodo.23267189"
+date-released: 2026-10-10
 authors:
   - family-names: "Semoglou"
     given-names: "Michail"
