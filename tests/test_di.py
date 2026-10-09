@@ -1,7 +1,7 @@
 """
 Tests for Dependency Injection Module
 
-Comprehensive tests demonstrating DI patterns and ensuring container functionality.
+Tests demonstrating DI patterns and container behavior.
 """
 
 import unittest

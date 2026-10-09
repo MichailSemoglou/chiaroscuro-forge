@@ -8,18 +8,19 @@ and Metal (Apple Silicon).
 Architecture:
 - Automatic GPU capability detection (lazy, on first use)
 - Transparent fallback to CPU
-- Async GPU processing for non-blocking operations
+- Per-backend capability reporting (including async support flags)
 - Memory-efficient data transfer
 - Benchmarking utilities
 
-Example:
-    >>> from chiaroscuro_forge.gpu import GPUContext, gpu_available
-    >>>
-    >>> if gpu_available():
-    ...     with GPUContext() as gpu:
-    ...         result = gpu.gaussian_blur(image, sigma=2.0)
-    ... else:
-    ...     result = cpu_gaussian_blur(image, sigma=2.0)
+Example
+-------
+>>> from chiaroscuro_forge.gpu import GPUContext, gpu_available
+>>>
+>>> if gpu_available():
+...     with GPUContext() as gpu:
+...         result = gpu.gaussian_blur(image, sigma=2.0)
+... else:
+...     result = cpu_gaussian_blur(image, sigma=2.0)
 """
 
 import functools
@@ -66,7 +67,7 @@ class GPUInfo:
 class GPUCapabilities:
     """Singleton class for GPU capability detection and management.
 
-    Detection is lazy -- no import-side-effect probing. The first access
+    Detection is lazy: no import-side-effect probing. The first access
     to ``info``, ``backend``, or ``is_available()`` triggers detection.
     """
 
@@ -77,6 +78,7 @@ class GPUCapabilities:
     _backend_module: Any
 
     def __new__(cls):
+        """Return the singleton instance, creating it on first call."""
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -180,6 +182,20 @@ class GPUCapabilities:
 
     @property
     def info(self) -> GPUInfo:
+        """Detected GPU device information.
+
+        Triggers lazy detection on first access.
+
+        Returns
+        -------
+        GPUInfo
+            Information about the detected GPU.
+
+        Raises
+        ------
+        RuntimeError
+            If GPU capabilities were not detected.
+        """
         self._ensure_detected()
         gpu_info = self._gpu_info
         if gpu_info is None:
@@ -188,6 +204,20 @@ class GPUCapabilities:
 
     @property
     def backend(self) -> GPUBackend:
+        """Active GPU backend.
+
+        Triggers lazy detection on first access.
+
+        Returns
+        -------
+        GPUBackend
+            The detected backend.
+
+        Raises
+        ------
+        RuntimeError
+            If GPU capabilities were not detected.
+        """
         self._ensure_detected()
         gpu_info = self._gpu_info
         if gpu_info is None:
@@ -196,10 +226,29 @@ class GPUCapabilities:
 
     @property
     def backend_module(self) -> Optional[Any]:
+        """Imported module for the detected backend.
+
+        Triggers lazy detection on first access.
+
+        Returns
+        -------
+        module or None
+            The backend module, or ``None`` when no GPU backend is
+            available.
+        """
         self._ensure_detected()
         return self._backend_module
 
     def is_available(self) -> bool:
+        """Check whether a usable GPU backend was detected.
+
+        Triggers lazy detection on first access.
+
+        Returns
+        -------
+        bool
+            ``True`` if a GPU backend is available, ``False`` otherwise.
+        """
         self._ensure_detected()
         gpu_info = self._gpu_info
         return gpu_info is not None and gpu_info.backend != GPUBackend.NONE
@@ -319,6 +368,10 @@ class GPUContext:
     """
 
     def __init__(self):
+        """Bind the context to the detected GPU backend.
+
+        No device resources are allocated until the context is entered.
+        """
         caps = _get_capabilities()
         self.backend = caps.backend
         self.backend_module = caps.backend_module
@@ -355,6 +408,25 @@ class GPUContext:
         self._active = False
 
     def to_gpu(self, array: np.ndarray) -> Any:
+        """Transfer an array to GPU memory.
+
+        Parameters
+        ----------
+        array : numpy.ndarray
+            Array to transfer.
+
+        Returns
+        -------
+        Any
+            GPU array or buffer. Returned unchanged when no GPU backend
+            is active.
+
+        Raises
+        ------
+        MemoryError
+            If the array exceeds the GPU transfer size limit (CUDA
+            backend).
+        """
         if self.backend == GPUBackend.CUDA:
             if _image_too_large_for_gpu(array):
                 raise MemoryError(f"Array too large for GPU transfer ({array.size} pixels)")
@@ -374,9 +446,26 @@ class GPUContext:
         return array
 
     def to_cpu(self, gpu_array: Any) -> np.ndarray:
+        """Transfer a GPU array back to host memory.
+
+        Parameters
+        ----------
+        gpu_array : Any
+            GPU array or buffer produced by :meth:`to_gpu`.
+
+        Returns
+        -------
+        numpy.ndarray
+            Host copy of the array.
+
+        Raises
+        ------
+        ValueError
+            If an OpenCL buffer lacks its host shape or dtype metadata.
+        """
         if self.backend == GPUBackend.CUDA:
             result = self.backend_module.asnumpy(gpu_array)
-            logger.debug("CUDA→CPU transfer: %s", result.shape)
+            logger.debug("CUDA->CPU transfer: %s", result.shape)
             return np.asarray(result)
         elif self.backend == GPUBackend.OPENCL:
             import pyopencl as cl
@@ -393,6 +482,23 @@ class GPUContext:
         return np.asarray(gpu_array) if not isinstance(gpu_array, np.ndarray) else gpu_array
 
     def gaussian_blur(self, image: np.ndarray, sigma: float) -> np.ndarray:
+        """Blur an image with a Gaussian filter.
+
+        Uses the CUDA backend when available; otherwise falls back to
+        scipy on the CPU.
+
+        Parameters
+        ----------
+        image : numpy.ndarray
+            Input image.
+        sigma : float
+            Standard deviation of the Gaussian kernel.
+
+        Returns
+        -------
+        numpy.ndarray
+            Blurred image.
+        """
         if self.backend == GPUBackend.CUDA:
             from cupyx.scipy.ndimage import gaussian_filter
 
@@ -404,6 +510,21 @@ class GPUContext:
         return np.asarray(gaussian_filter(image, sigma=sigma))
 
     def sobel_filter(self, image: np.ndarray) -> np.ndarray:
+        """Compute the Sobel edge magnitude of an image.
+
+        Uses the CUDA backend when available; otherwise falls back to
+        scipy on the CPU.
+
+        Parameters
+        ----------
+        image : numpy.ndarray
+            Input image.
+
+        Returns
+        -------
+        numpy.ndarray
+            Gradient magnitude image.
+        """
         if self.backend == GPUBackend.CUDA:
             from cupyx.scipy.ndimage import sobel
 
@@ -435,6 +556,13 @@ class GPUBenchmark:
 
     @property
     def summary(self) -> str:
+        """One-line summary of the benchmark result.
+
+        Returns
+        -------
+        str
+            Operation and backend, plus speedup and any error messages.
+        """
         parts = [f"{self.operation} [{self.backend.value}]"]
         if self.speedup is not None:
             parts.append(f"{self.speedup:.1f}x speedup")

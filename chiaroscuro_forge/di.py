@@ -1,5 +1,5 @@
 """
-Dependency Injection Module
+Dependency Injection Module.
 
 Provides a simple, educational dependency injection container for the
 chiaroscuro-forge package. Demonstrates SOLID principles and enables
@@ -8,20 +8,22 @@ better testability through inversion of control.
 This module is designed for academic teaching purposes, showing how DI
 can improve software architecture without over-engineering.
 
-Example:
-    >>> from chiaroscuro_forge.di import ServiceContainer, inject
-    >>>
-    >>> # Create a container
-    >>> container = ServiceContainer()
-    >>>
-    >>> # Register services
-    >>> container.register('cache', get_cache_manager())
-    >>>
-    >>> # Use injection decorator
-    >>> @inject('cache')
-    >>> def my_function(data, cache=None):
-    ...     # cache is automatically injected
-    ...     return cache.get(data)
+Example
+-------
+>>> from chiaroscuro_forge.cache import get_cache_manager
+>>> from chiaroscuro_forge.di import ServiceContainer, inject
+>>>
+>>> # Create a container
+>>> container = ServiceContainer()
+>>>
+>>> # Register services
+>>> container.register('cache', get_cache_manager())
+>>>
+>>> # Use injection decorator
+>>> @inject('cache')
+>>> def my_function(data, cache=None):
+...     # cache is automatically injected
+...     return cache.get(data)
 """
 
 import inspect
@@ -47,10 +49,14 @@ class ServiceContainer:
     - Dependency Injection
     - Service Locator pattern
 
-    Attributes:
-        _services: Dictionary mapping service names to instances
-        _factories: Dictionary mapping service names to factory functions
-        _singletons: Set of service names that should be singletons
+    Attributes
+    ----------
+    _services : dict
+        Mapping of service names to instances
+    _factories : dict
+        Mapping of service names to factory functions
+    _singletons : set
+        Service names whose factory-created instances are cached
     """
 
     def __init__(self):
@@ -63,15 +69,22 @@ class ServiceContainer:
         """
         Register a service instance.
 
-        Args:
-            name: Service identifier
-            service: Service instance or value
-            singleton: Whether to treat as singleton (default: True)
+        Parameters
+        ----------
+        name : str
+            Service identifier
+        service : Any
+            Service instance or value
+        singleton : bool, default=True
+            Record the name in the singleton set. The instance is stored
+            as-is either way, so this flag has no effect on retrieval;
+            it only matters for names resolved through a factory
 
-        Example:
-            >>> container = ServiceContainer()
-            >>> container.register('config', {'debug': True})
-            >>> config = container.get('config')
+        Examples
+        --------
+        >>> container = ServiceContainer()
+        >>> container.register('config', {'debug': True})
+        >>> config = container.get('config')
         """
         self._services[name] = service
         if singleton:
@@ -79,17 +92,22 @@ class ServiceContainer:
 
     def register_factory(self, name: str, factory: Callable, singleton: bool = False) -> None:
         """
-        Register a factory function for lazy service creation.
+        Store a factory function for lazy service creation.
 
-        Args:
-            name: Service identifier
-            factory: Callable that creates the service
-            singleton: Whether to cache the created instance
+        Parameters
+        ----------
+        name : str
+            Service identifier
+        factory : Callable
+            Callable that creates the service
+        singleton : bool, default=False
+            Cache the created instance on first use
 
-        Example:
-            >>> def create_cache():
-            ...     return CacheManager()
-            >>> container.register_factory('cache', create_cache, singleton=True)
+        Examples
+        --------
+        >>> def create_cache():
+        ...     return CacheManager()
+        >>> container.register_factory('cache', create_cache, singleton=True)
         """
         self._factories[name] = factory
         if singleton:
@@ -99,19 +117,26 @@ class ServiceContainer:
         """
         Retrieve a service by name.
 
-        Args:
-            name: Service identifier
+        Parameters
+        ----------
+        name : str
+            Service identifier
 
-        Returns:
+        Returns
+        -------
+        Any
             The requested service instance
 
-        Raises:
-            ServiceNotFoundError: If service is not registered
+        Raises
+        ------
+        ServiceNotFoundError
+            If service is not registered
 
-        Example:
-            >>> cache = container.get('cache')
+        Examples
+        --------
+        >>> cache = container.get('cache')
         """
-        # Check if already instantiated
+        # Return a directly registered or previously cached instance
         if name in self._services:
             return self._services[name]
 
@@ -119,7 +144,6 @@ class ServiceContainer:
         if name in self._factories:
             instance = self._factories[name]()
 
-            # Cache if singleton
             if name in self._singletons:
                 self._services[name] = instance
 
@@ -134,10 +158,14 @@ class ServiceContainer:
         """
         Check if a service is registered.
 
-        Args:
-            name: Service identifier
+        Parameters
+        ----------
+        name : str
+            Service identifier
 
-        Returns:
+        Returns
+        -------
+        bool
             True if service exists, False otherwise
         """
         return name in self._services or name in self._factories
@@ -152,8 +180,10 @@ class ServiceContainer:
         """
         Get list of all registered service names.
 
-        Returns:
-            List of service identifiers
+        Returns
+        -------
+        list
+            Service identifiers
         """
         return list(set(self._services.keys()) | set(self._factories.keys()))
 
@@ -169,12 +199,15 @@ def get_container() -> ServiceContainer:
     Uses lazy initialization to create container on first access.
     Implements the Singleton pattern for the global container.
 
-    Returns:
-        Global ServiceContainer instance
+    Returns
+    -------
+    ServiceContainer
+        Global container instance
 
-    Example:
-        >>> container = get_container()
-        >>> container.register('my_service', MyService())
+    Examples
+    --------
+    >>> container = get_container()
+    >>> container.register('my_service', MyService())
     """
     global _global_container
     if _global_container is None:
@@ -188,9 +221,10 @@ def reset_container() -> None:
 
     Useful for testing to ensure clean state between tests.
 
-    Example:
-        >>> reset_container()  # Start fresh
-        >>> container = get_container()
+    Examples
+    --------
+    >>> reset_container()  # Start fresh
+    >>> container = get_container()
     """
     global _global_container
     _global_container = None
@@ -198,30 +232,40 @@ def reset_container() -> None:
 
 def inject(*service_names: str, container: Optional[ServiceContainer] = None):
     """
-    Decorator for automatic dependency injection.
+    Inject services into the decorated function as keyword arguments.
 
-    Injects services as keyword arguments to the decorated function.
     Demonstrates the Decorator pattern and dependency injection.
 
-    Args:
-        *service_names: Names of services to inject
-        container: Optional container to use (defaults to global)
+    Parameters
+    ----------
+    *service_names : str
+        Names of services to inject
+    container : ServiceContainer, optional
+        Container to use (defaults to global)
 
-    Returns:
+    Returns
+    -------
+    Callable
         Decorated function with injected dependencies
 
-    Example:
-        >>> @inject('cache', 'config')
-        >>> def process_data(data, cache=None, config=None):
-        ...     # cache and config are automatically injected
-        ...     if config['use_cache']:
-        ...         return cache.get(data)
-        ...     return data
+    Raises
+    ------
+    ServiceNotFoundError
+        If a requested service is not found in the container
 
-    Note:
-        - Services are injected only if the parameter default is None
-        - Maintains backward compatibility with explicit arguments
-        - Raises ServiceNotFoundError if service not found
+    Examples
+    --------
+    >>> @inject('cache', 'config')
+    >>> def process_data(data, cache=None, config=None):
+    ...     # cache and config are automatically injected
+    ...     if config['use_cache']:
+    ...         return cache.get(data)
+    ...     return data
+
+    Notes
+    -----
+    - Services are injected only if the parameter default is None
+    - Maintains backward compatibility with explicit arguments
     """
 
     def decorator(func: Callable) -> Callable:
@@ -296,17 +340,20 @@ class ValidationProtocol(Protocol):
 
 def setup_default_services() -> ServiceContainer:
     """
-    Setup container with default services for the package.
+    Set up container with default services for the package.
 
     This function demonstrates how to bootstrap a DI container
     with all necessary services for the application.
 
-    Returns:
-        Configured ServiceContainer with default services
+    Returns
+    -------
+    ServiceContainer
+        Container configured with default services
 
-    Example:
-        >>> container = setup_default_services()
-        >>> # All services are now available
+    Examples
+    --------
+    >>> container = setup_default_services()
+    >>> # All services are now available
     """
     container = ServiceContainer()
 
@@ -340,9 +387,10 @@ def setup_default_services() -> ServiceContainer:
 # Educational examples and patterns
 class ExampleService:
     """
-    Example service demonstrating DI principles.
+    Teaching example of a service designed for dependency injection.
 
-    This class shows how to design a service that:
+    This class is illustrative only; the package does not use it. It shows
+    a service that:
     - Has clear dependencies declared in __init__
     - Can be easily tested with mock dependencies
     - Follows single responsibility principle
@@ -352,19 +400,18 @@ class ExampleService:
         """
         Initialize service with injected dependencies.
 
-        Args:
-            cache: Optional cache service
-            config: Optional configuration dictionary
+        Parameters
+        ----------
+        cache : optional
+            Cache service, if caching is wanted
+        config : dict, optional
+            Configuration dictionary
         """
         self.cache = cache
         self.config = config or {}
 
     def process(self, data: Any) -> Any:
-        """
-        Process data using injected dependencies.
-
-        Demonstrates how injected dependencies make testing easier.
-        """
+        """Process data using injected dependencies."""
         if self.cache and self.config.get("use_cache", False):
             cached = self.cache.get(str(data))
             if cached is not None:
@@ -379,5 +426,5 @@ class ExampleService:
         return result
 
     def _do_processing(self, data: Any) -> Any:
-        """Internal processing logic."""
+        """Apply the internal processing logic to the data."""
         return data  # Placeholder

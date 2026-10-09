@@ -23,14 +23,29 @@ def compare_processing_methods(
     """
     Compare multiple processing methods on a single image.
 
-    Args:
-        image_path: Path to input image
-        output_dir: Optional directory to save processed images
-        application_type: Application type for processing optimization
-        calculate_advanced_metrics: Whether to calculate advanced quality metrics
+    Parameters
+    ----------
+    image_path : str
+        Path to the input image.
+    output_dir : str, optional
+        Directory to save processed images. If None, processed images
+        are not written to disk.
+    application_type : str, default="general"
+        Application type used for processing optimization.
+    calculate_advanced_metrics : bool, default=True
+        Whether to calculate additional quality metrics.
 
-    Returns:
-        Dictionary with results for each method and the best method
+    Returns
+    -------
+    dict
+        Results keyed by method name, plus a "best_method" entry when at
+        least one method produced a quality score.
+
+    Raises
+    ------
+    ImageProcessingError
+        If the input path is invalid, the application type is unknown,
+        or the output directory cannot be created.
     """
     _validate_image_path(image_path)
 
@@ -222,15 +237,19 @@ def compare_processing_methods(
 
 def suggest_optimal_params(analysis_results: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Suggest optimal processing parameters based on batch analysis results.
+    Suggest processing parameters based on batch analysis results.
 
-    Args:
-        analysis_results: Results from analyze_batch function
+    Parameters
+    ----------
+    analysis_results : dict
+        Results from the ``analyze_batch`` function.
 
-    Returns:
-        Dictionary with suggested parameters
+    Returns
+    -------
+    dict
+        Suggested parameters, the inferred application type, and the
+        batch summary.
     """
-    # Extract summary statistics
     summary = analysis_results.get("summary", {})
     total_images = analysis_results.get("total_images", 0)
 
@@ -248,7 +267,6 @@ def suggest_optimal_params(analysis_results: Dict[str, Any]) -> Dict[str, Any]:
     color_images = summary.get("color_images", 0) if isinstance(summary, dict) else 0
     is_mostly_color = color_images > (total_images / 2) if total_images else False
 
-    # Start with default parameters
     params = {
         "equalize_method": "stretch",
         "contrast_stretch_percentiles": (5, 95),
@@ -301,7 +319,6 @@ def suggest_optimal_params(analysis_results: Dict[str, Any]) -> Dict[str, Any]:
         params["sharpen"] = True
         params["sharpen_amount"] = 1.2
 
-    # Determine application type
     if avg_edge_density > 0.1 and avg_contrast > 0.25:
         application_type = "document"
     elif is_mostly_color and avg_contrast > 0.2:

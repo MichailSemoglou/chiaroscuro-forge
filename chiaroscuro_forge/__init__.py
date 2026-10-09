@@ -6,27 +6,28 @@ inspired by Renaissance image-making practices. It combines automatic
 parameter analysis, color-preservation strategies, perceptual quality metrics,
 and repeatable batch processing for practical and research-oriented workflows.
 
-The public API is intentionally stable for normal usage, while advanced or
-experimental modes such as the opt-in linear-light pipeline are documented as
-such rather than presented as the default processing path.
+The public API is intentionally stable for normal usage, while experimental
+modes such as the opt-in linear-light pipeline are documented as such rather
+than presented as the default processing path.
 
-Example:
-    Basic usage for image enhancement::
+Example
+-------
+Basic usage for image enhancement:
 
-        from chiaroscuro_forge import process_image
+    from chiaroscuro_forge import process_image
 
-        processed, metrics = process_image(
-            "input.jpg",
-            output_path="enhanced.jpg",
-            application_type="photography",
-        )
-        print(f"Quality Score: {metrics['quality_score']:.4f}")
+    processed, metrics = process_image(
+        "input.jpg",
+        output_path="enhanced.jpg",
+        application_type="photography",
+    )
+    print(f"Quality Score: {metrics['quality_score']:.4f}")
 
 For more examples, see the documentation at:
 https://github.com/MichailSemoglou/chiaroscuro-forge
 """
 
-__version__ = "2.2.0"
+__version__ = "2.2.1"
 __author__ = "Michail Semoglou"
 __email__ = "m.semoglou@tongji.edu.cn"
 __license__ = "MIT"
@@ -74,7 +75,7 @@ from chiaroscuro_forge.gpu import (
 )
 from chiaroscuro_forge.presets import list_presets, load_preset, save_preset
 
-# Import all functionality from modular structure
+# Import the process_image entry point
 from chiaroscuro_forge.processing import process_image
 from chiaroscuro_forge.tiling import (
     process_image_tiled,
@@ -133,19 +134,19 @@ __all__ = [
     "load_preset",
     "list_presets",
     "ImageProcessingError",
-    # Phase 3.1: Cache management
+    # Cache management
     "get_cache_manager",
     "invalidate_preset_cache",
     "invalidate_stats_cache",
-    # Phase 3.2: Tile-based processing
+    # Tile-based processing
     "process_image_tiled",
     "should_use_tiling",
-    # Phase 3.3: Dependency injection
+    # Dependency injection
     "ServiceContainer",
     "get_container",
     "inject",
     "setup_default_services",
-    # Phase 4.1: GPU acceleration
+    # GPU acceleration
     "GPUContext",
     "gpu_available",
     "get_gpu_info",
@@ -154,7 +155,7 @@ __all__ = [
     "GPUInfo",
     "benchmark_operation",
     "safe_gpu",
-    # Phase 4.2: Distributed processing
+    # Distributed processing
     "TaskQueue",
     "LocalQueue",
     "DistributedBatchProcessor",
@@ -163,7 +164,7 @@ __all__ = [
     "QueueConfig",
     "QueueHealth",
     "create_queue",
-    # Phase 4.3: REST API
+    # REST API
     "app",
     "api_key_manager",
     "job_manager",

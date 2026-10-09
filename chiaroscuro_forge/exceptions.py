@@ -1,5 +1,5 @@
 """
-Custom Exceptions for Chiaroscuro Forge
+Custom Exceptions for Chiaroscuro Forge.
 
 This module defines custom exception classes used throughout the package.
 """

@@ -2,7 +2,7 @@
 Image analysis and statistics functions.
 
 This module provides tools for analyzing image characteristics and calculating
-comprehensive statistics to help determine optimal processing parameters.
+detailed statistics to help determine optimal processing parameters.
 """
 
 from typing import Any, Dict, Union
@@ -18,7 +18,7 @@ from .validation import _validate_image_path, validate_array
 rank = filters.rank  # type: ignore[attr-defined]
 
 
-@cached_image_stats(ttl=3600)  # Cache for 1 hour
+@cached_image_stats(ttl=3600)
 def analyze_image_characteristics(image_path: str) -> Dict[str, Any]:
     """
     Analyze image characteristics and suggest optimal processing parameters.
@@ -206,7 +206,7 @@ def analyze_image_characteristics(image_path: str) -> Dict[str, Any]:
 
 def get_image_statistics(image: Union[str, np.ndarray]) -> Dict[str, Any]:
     """
-    Calculate comprehensive statistics for an image.
+    Calculate summary statistics for an image.
 
     Provides a quick overview of image properties including intensity statistics,
     histogram information, and basic quality indicators.
@@ -240,7 +240,6 @@ def get_image_statistics(image: Union[str, np.ndarray]) -> Dict[str, Any]:
     >>> print(f"Image brightness: {stats['brightness']:.2f}")
     >>> print(f"Dynamic range: {stats['dynamic_range']:.2f}")
     """
-    # Load image if path is provided
     if isinstance(image, str):
         _validate_image_path(image)
         try:
@@ -255,7 +254,6 @@ def get_image_statistics(image: Union[str, np.ndarray]) -> Dict[str, Any]:
     # Convert to float for consistent calculations
     img_float = img_as_float(img)
 
-    # Determine if color or grayscale
     is_color = img_float.ndim == 3 and img_float.shape[2] >= 3
 
     if is_color:
@@ -280,7 +278,6 @@ def get_image_statistics(image: Union[str, np.ndarray]) -> Dict[str, Any]:
     else:
         flat = img_float.flatten()
 
-    # Calculate intensity statistics
     intensity_stats = {
         "min": float(np.min(flat)),
         "max": float(np.max(flat)),
@@ -303,7 +300,6 @@ def get_image_statistics(image: Union[str, np.ndarray]) -> Dict[str, Any]:
     # Calculate dynamic range (using 1st and 99th percentile to avoid outliers)
     dynamic_range = percentiles["p99"] - percentiles["p1"]
 
-    # Calculate contrast ratio
     dark_region = percentiles["p5"]
     bright_region = percentiles["p95"]
     contrast_ratio = bright_region / max(dark_region, 0.001)

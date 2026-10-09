@@ -3,7 +3,7 @@ Tests for analysis module - image characteristics and statistics.
 
 Tests cover:
 - analyze_image_characteristics: characteristic detection and parameter suggestions
-- get_image_statistics: comprehensive image statistics
+- get_image_statistics: descriptive image statistics
 - Error handling
 """
 

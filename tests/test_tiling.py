@@ -1,7 +1,7 @@
 """
 Tests for Tile-Based Image Processing
 
-Comprehensive tests for memory-efficient large image processing using tiles.
+Tests for memory-efficient large image processing using tiles.
 """
 
 import unittest
@@ -400,7 +400,7 @@ class TestShouldUseTiling(unittest.TestCase):
         """Test behavior at threshold boundary."""
         # Calculate size for exactly 100 MB with RGB
         # 100 MB = 100 * 1024 * 1024 bytes / 3 bytes_per_pixel = 34,952,533 pixels
-        # sqrt(34952533) ≈ 5912
+        # sqrt(34952533) is approx. 5912
         result_below = should_use_tiling((5900, 5900), memory_threshold_mb=100.0, bytes_per_pixel=3)
         result_above = should_use_tiling((5920, 5920), memory_threshold_mb=100.0, bytes_per_pixel=3)
 

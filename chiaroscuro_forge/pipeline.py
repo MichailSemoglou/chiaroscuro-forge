@@ -7,6 +7,7 @@ ability to switch between the default sRGB path and the opt-in linear-light
 mode.
 """
 
+import warnings
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Tuple
 
@@ -17,7 +18,18 @@ from .exceptions import ImageProcessingError
 
 
 def srgb_to_linear(image: np.ndarray) -> np.ndarray:
-    """Convert sRGB-encoded values into linear-light values."""
+    """Convert sRGB-encoded values into linear-light values.
+
+    Parameters
+    ----------
+    image : np.ndarray
+        sRGB-encoded image with values in the range [0, 1].
+
+    Returns
+    -------
+    np.ndarray
+        Linear-light image as float64.
+    """
     image = np.asarray(image, dtype=np.float64)
     return np.where(
         image <= 0.04045,
@@ -27,13 +39,83 @@ def srgb_to_linear(image: np.ndarray) -> np.ndarray:
 
 
 def linear_to_srgb(image: np.ndarray) -> np.ndarray:
-    """Convert linear-light values back to sRGB-encoded values."""
+    """Convert linear-light values back to sRGB-encoded values.
+
+    Parameters
+    ----------
+    image : np.ndarray
+        Linear-light image with non-negative values.
+
+    Returns
+    -------
+    np.ndarray
+        sRGB-encoded image as float64, nominally in the range [0, 1].
+    """
     image = np.asarray(image, dtype=np.float64)
     return np.where(
         image <= 0.0031308,
         12.92 * image,
         1.055 * (image ** (1.0 / 2.4)) - 0.055,
     )
+
+
+# D65-referred XYZ to linear sRGB matrix (IEC 61966-2-1)
+_XYZ_TO_LINEAR_SRGB = np.array(
+    [
+        [3.2404542, -1.5371385, -0.4985314],
+        [-0.9692660, 1.8760108, 0.0415560],
+        [0.0556434, -0.2040259, 1.0572252],
+    ]
+)
+
+
+def _lab_to_srgb_gamut_mapped(lab: np.ndarray, iterations: int = 12) -> np.ndarray:
+    """Convert LAB to sRGB, reducing chroma of out-of-gamut colors.
+
+    skimage's lab2rgb clips to the sRGB cube, which shifts hue and
+    lightness on saturated colors. Out-of-gamut pixels are instead mapped
+    toward the achromatic axis at constant hue and lightness.
+
+    Parameters
+    ----------
+    lab : np.ndarray
+        LAB image with L in [0, 100] and a, b as signed chroma channels.
+    iterations : int, default=12
+        Number of bisection steps used to find the largest in-gamut chroma
+        scale factor per out-of-gamut pixel.
+
+    Returns
+    -------
+    np.ndarray
+        sRGB image with values in the range [0, 1].
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        rgb = color.lab2rgb(lab)
+
+    rgb_linear = color.lab2xyz(lab) @ _XYZ_TO_LINEAR_SRGB.T
+    out_of_gamut = np.any((rgb_linear < 0.0) | (rgb_linear > 1.0), axis=2)
+    if not np.any(out_of_gamut):
+        return np.asarray(rgb)
+
+    lightness = lab[:, :, 0][out_of_gamut]
+    a_channel = lab[:, :, 1][out_of_gamut]
+    b_channel = lab[:, :, 2][out_of_gamut]
+
+    lo = np.zeros_like(lightness)
+    hi = np.ones_like(lightness)
+    for _ in range(iterations):
+        mid = 0.5 * (lo + hi)
+        trial_lab = np.stack([lightness, a_channel * mid, b_channel * mid], axis=1)
+        trial_linear = color.lab2xyz(trial_lab) @ _XYZ_TO_LINEAR_SRGB.T
+        in_gamut = np.all((trial_linear >= 0.0) & (trial_linear <= 1.0), axis=1)
+        lo = np.where(in_gamut, mid, lo)
+        hi = np.where(in_gamut, hi, mid)
+
+    mapped_lab = np.stack([lightness, a_channel * lo, b_channel * lo], axis=1)
+    mapped_linear = color.lab2xyz(mapped_lab) @ _XYZ_TO_LINEAR_SRGB.T
+    rgb[out_of_gamut] = linear_to_srgb(np.clip(mapped_linear, 0.0, None))
+    return np.asarray(rgb)
 
 
 class PipelineStage(ABC):
@@ -68,7 +150,14 @@ class PipelineStage(ABC):
         pass
 
     def __call__(self, image: np.ndarray, context: Dict[str, Any]) -> np.ndarray:
-        """Invoke the stage through the standard pipeline interface."""
+        """Invoke the stage through the standard pipeline interface.
+
+        Raises
+        ------
+        ImageProcessingError
+            If the stage's ``process`` implementation fails. The original
+            message is preserved in the re-raised error.
+        """
         try:
             return self.process(image, context)
         except ImageProcessingError:
@@ -84,6 +173,7 @@ class LinearizeStage(PipelineStage):
         super().__init__("Linearize")
 
     def process(self, image: np.ndarray, context: Dict[str, Any]) -> np.ndarray:
+        """Linearize the sRGB input when linear-light mode is enabled."""
         if not context.get("linear_light", False):
             return image
         return np.asarray(np.clip(srgb_to_linear(image), 0.0, None))
@@ -96,6 +186,7 @@ class ToneMappingStage(PipelineStage):
         super().__init__("Tone Mapping")
 
     def process(self, image: np.ndarray, context: Dict[str, Any]) -> np.ndarray:
+        """Compress linear-light luminance back into the sRGB range."""
         if not context.get("linear_light", False):
             return image
 
@@ -119,6 +210,7 @@ class ResizeStage(PipelineStage):
         super().__init__("Resize")
 
     def process(self, image: np.ndarray, context: Dict[str, Any]) -> np.ndarray:
+        """Rescale the image and its color reference by the scale factor."""
         scale_factor = context.get("scale_factor", 1.0)
         if scale_factor == 1.0:
             return image
@@ -154,6 +246,7 @@ class RotateStage(PipelineStage):
         super().__init__("Rotate")
 
     def process(self, image: np.ndarray, context: Dict[str, Any]) -> np.ndarray:
+        """Rotate the image and its color reference by the configured angle."""
         angle = context.get("rotation_angle")
         if angle in (None, 0):
             return image
@@ -191,6 +284,7 @@ class DenoiseStage(PipelineStage):
         super().__init__("Denoise")
 
     def process(self, image: np.ndarray, context: Dict[str, Any]) -> np.ndarray:
+        """Reduce noise with the configured denoising filter."""
         denoise_type = context.get("denoise_type", "gaussian")
         denoise_sigma = context.get("denoise_sigma", 1.0)
 
@@ -243,6 +337,7 @@ class SharpenStage(PipelineStage):
         super().__init__("Sharpen")
 
     def process(self, image: np.ndarray, context: Dict[str, Any]) -> np.ndarray:
+        """Sharpen the image with unsharp masking when enabled."""
         if not context.get("sharpen", False):
             return image
 
@@ -260,29 +355,28 @@ class ContrastStage(PipelineStage):
         super().__init__("Contrast Enhancement")
 
     def process(self, image: np.ndarray, context: Dict[str, Any]) -> np.ndarray:
+        """Enhance contrast with the configured equalization method."""
         if not context.get("equalize", False):
             return image
 
         equalize_method = context.get("equalize_method", "stretch")
 
-        # Store original for potential color preservation
-        context["pre_contrast_image"] = image.copy()
-
         if image.ndim == 3:
-            # Convert to LAB for processing
-            lab_image = color.rgb2lab(image)
+            # rgb2lab expects sRGB-encoded input; encode first in linear mode
+            linear_light = context.get("linear_light", False)
+            srgb_image = linear_to_srgb(image) if linear_light else image
+            lab_image = color.rgb2lab(srgb_image)
             # Methods operate on [0, 1]; L natively spans [0, 100]
             l_channel = lab_image[:, :, 0] / 100.0
 
-            # Apply method to L channel
             l_enhanced = self._apply_method(l_channel, equalize_method, context)
 
-            # Reconstruct
             lab_enhanced = lab_image.copy()
             lab_enhanced[:, :, 0] = np.clip(l_enhanced, 0, 1) * 100.0
             enhanced = color.lab2rgb(lab_enhanced)
+            if linear_light:
+                enhanced = srgb_to_linear(enhanced)
         else:
-            # Grayscale
             enhanced = self._apply_method(image, equalize_method, context)
 
         return np.asarray(np.clip(enhanced, 0, 1))
@@ -319,6 +413,7 @@ class GammaCorrectionStage(PipelineStage):
         super().__init__("Gamma Correction")
 
     def process(self, image: np.ndarray, context: Dict[str, Any]) -> np.ndarray:
+        """Adjust image gamma when the configured value differs from 1.0."""
         gamma = context.get("gamma_correction", 1.0)
         if gamma == 1.0:
             return image
@@ -332,6 +427,7 @@ class ColorPreservationStage(PipelineStage):
         super().__init__("Color Preservation")
 
     def process(self, image: np.ndarray, context: Dict[str, Any]) -> np.ndarray:
+        """Blend original colors back into the enhanced image."""
         method = context.get("color_preservation", "none")
         if method == "none" or image.ndim != 3:
             return image
@@ -366,7 +462,6 @@ class ColorPreservationStage(PipelineStage):
         lab_enhanced = color.rgb2lab(enhanced_srgb)
         lab_original = color.rgb2lab(original_srgb)
 
-        # Blend a and b channels
         lab_result = lab_enhanced.copy()
         lab_result[:, :, 1] = (
             strength * lab_original[:, :, 1] + (1 - strength) * lab_enhanced[:, :, 1]
@@ -375,7 +470,7 @@ class ColorPreservationStage(PipelineStage):
             strength * lab_original[:, :, 2] + (1 - strength) * lab_enhanced[:, :, 2]
         )
 
-        lab_rgb = color.lab2rgb(lab_result)
+        lab_rgb = _lab_to_srgb_gamut_mapped(lab_result)
         if linear_light:
             lab_rgb = srgb_to_linear(lab_rgb)
         return np.asarray(np.clip(lab_rgb, 0.0, 1.0))
@@ -396,23 +491,34 @@ class ColorPreservationStage(PipelineStage):
     def _preserve_rgb(
         self, enhanced: np.ndarray, original: np.ndarray, strength: float
     ) -> np.ndarray:
-        """Simple RGB blending."""
+        """Combine the original and enhanced images in RGB space."""
         return np.asarray(np.clip(strength * original + (1 - strength) * enhanced, 0, 1))
 
 
 class ImageProcessingPipeline:
-    """
-    Main processing pipeline that chains stages together.
+    """Ordered chain of pipeline stages applied sequentially to an image.
 
-    This reduces the complexity of process_image() from ~250 lines
-    to a clean, modular pipeline.
+    Stages run in the order they are added. Each stage receives the output of
+    the previous stage together with a shared context dictionary that carries
+    configuration and intermediate values.
     """
 
     def __init__(self):
         self.stages = []
 
     def add_stage(self, stage: PipelineStage) -> "ImageProcessingPipeline":
-        """Add a processing stage to the pipeline."""
+        """Append a processing stage to the pipeline.
+
+        Parameters
+        ----------
+        stage : PipelineStage
+            Stage to append. It runs after all previously added stages.
+
+        Returns
+        -------
+        ImageProcessingPipeline
+            This pipeline, to allow chained calls.
+        """
         self.stages.append(stage)
         return self
 

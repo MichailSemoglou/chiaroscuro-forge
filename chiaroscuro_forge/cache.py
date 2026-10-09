@@ -1,12 +1,13 @@
 """
-Caching Module for Chiaroscuro Forge
+Caching for image statistics and preset loading.
 
-This module provides caching functionality for image statistics and presets
-to improve performance by avoiding redundant computations.
+This module stores image statistics and preset data so repeated operations
+skip redundant computation.
 
 Features:
-- LRU cache for image statistics
-- Preset caching with automatic invalidation
+- Image statistics caching with time-based (TTL) expiration
+- FIFO eviction by insertion timestamp when a cache exceeds its size limit
+- Preset caching with manual invalidation and optional TTL
 - File hash-based cache keys
 - Configurable cache sizes
 """
@@ -26,7 +27,8 @@ class CacheManager:
     Central cache manager for image processing operations.
 
     This class provides a unified interface for managing caches across
-    different operations, with configurable sizes and TTL support.
+    different operations, with configurable sizes. Expiration (TTL) logic
+    lives in the caching decorators, not in this class.
     """
 
     def __init__(self, max_stats_cache: int = 128, max_preset_cache: int = 32):
@@ -54,7 +56,8 @@ class CacheManager:
         Returns
         -------
         dict
-            Dictionary with cache hits and misses
+            Dictionary with cache hits, misses, and the number of cached
+            statistics and preset entries.
         """
         return {
             "hits": self._cache_hits,
@@ -130,7 +133,7 @@ def compute_file_hash(file_path: str, chunk_size: int = 8192) -> str:
 
 def get_file_cache_key(file_path: str) -> str:
     """
-    Generate cache key for a file based on path and modification time.
+    Generate a cache key from a file's path, modification time, and size.
 
     This avoids expensive hash computation while still detecting file changes.
 
@@ -143,6 +146,11 @@ def get_file_cache_key(file_path: str) -> str:
     -------
     str
         Cache key string
+
+    Raises
+    ------
+    ImageProcessingError
+        If the file's metadata cannot be read
     """
     try:
         path = Path(file_path)
@@ -155,7 +163,7 @@ def get_file_cache_key(file_path: str) -> str:
 
 def cached_image_stats(ttl: Optional[float] = 3600):
     """
-    Decorator for caching image statistics with TTL.
+    Cache image statistics with TTL expiration.
 
     Parameters
     ----------
@@ -222,7 +230,7 @@ def cached_image_stats(ttl: Optional[float] = 3600):
 
 def cached_preset(ttl: Optional[float] = None):
     """
-    Decorator for caching preset loading with TTL.
+    Return a decorator that caches preset loading with an optional TTL.
 
     Parameters
     ----------

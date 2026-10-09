@@ -1,3 +1,9 @@
+"""Tests for the top-level chiaroscuro_forge package API.
+
+Covers analyze_image_characteristics and process_image against a sample
+image, including metrics output and output file creation.
+"""
+
 import os
 import sys
 import unittest
@@ -13,6 +19,8 @@ import chiaroscuro_forge
 
 
 class TestChiaroscuroForge(unittest.TestCase):
+    """Test analysis and processing through the public package namespace."""
+
     def setUp(self):
         # Create a test image
         self.test_image = data.astronaut()
