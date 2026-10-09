@@ -9,12 +9,15 @@ updates:
       - "MichailSemoglou"
     ignore:
       # These require Python >= 3.10; revisit when Python 3.9 support ends
+      - dependency-name: "black"
+      - dependency-name: "fastapi"
+      - dependency-name: "flake8"
+      - dependency-name: "hypothesis"
+      - dependency-name: "mypy"
       - dependency-name: "numpy"
+      - dependency-name: "pylint"
       - dependency-name: "scikit-image"
       - dependency-name: "uvicorn"
-      - dependency-name: "pylint"
-      - dependency-name: "hypothesis"
-      - dependency-name: "flake8"
 
   - package-ecosystem: github-actions
     directory: "/"
