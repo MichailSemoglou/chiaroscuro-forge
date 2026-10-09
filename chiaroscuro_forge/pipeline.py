@@ -361,9 +361,6 @@ class ContrastStage(PipelineStage):
 
         equalize_method = context.get("equalize_method", "stretch")
 
-        # Store original for potential color preservation
-        context["pre_contrast_image"] = image.copy()
-
         if image.ndim == 3:
             # rgb2lab expects sRGB-encoded input; encode first in linear mode
             linear_light = context.get("linear_light", False)
