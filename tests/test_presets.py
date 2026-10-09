@@ -1,5 +1,5 @@
 """
-Comprehensive tests for presets module.
+Tests for the presets module.
 
 Tests cover:
 - Loading presets from disk

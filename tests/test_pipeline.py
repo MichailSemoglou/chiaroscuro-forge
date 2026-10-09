@@ -49,7 +49,7 @@ class TestPipelineStage(unittest.TestCase):
 
 
 class TestResizeStage(unittest.TestCase):
-    """Test ResizeStage functionality."""
+    """Exercise ResizeStage scaling behavior."""
 
     def setUp(self):
         """Create test image (100x100)."""
@@ -94,7 +94,7 @@ class TestResizeStage(unittest.TestCase):
 
 
 class TestDenoiseStage(unittest.TestCase):
-    """Test DenoiseStage functionality."""
+    """Cover DenoiseStage methods and the invalid-method error."""
 
     def setUp(self):
         """Create noisy test image."""
@@ -140,7 +140,7 @@ class TestDenoiseStage(unittest.TestCase):
 
 
 class TestSharpenStage(unittest.TestCase):
-    """Test SharpenStage functionality."""
+    """Check SharpenStage amount and method handling."""
 
     def setUp(self):
         """Create test image."""
@@ -191,7 +191,7 @@ class TestEOTFHelpers(unittest.TestCase):
 
 
 class TestContrastStage(unittest.TestCase):
-    """Test ContrastStage functionality."""
+    """Exercise ContrastStage enhancement methods, including linear mode."""
 
     def setUp(self):
         """Create test image."""
@@ -293,7 +293,7 @@ class TestLinearizeStage(unittest.TestCase):
 
 
 class TestGammaCorrectionStage(unittest.TestCase):
-    """Test GammaCorrectionStage functionality."""
+    """Verify GammaCorrectionStage with valid, missing, and invalid gamma values."""
 
     def setUp(self):
         """Create test image."""
@@ -356,7 +356,7 @@ class TestToneMappingStage(unittest.TestCase):
 
 
 class TestColorPreservationStage(unittest.TestCase):
-    """Test ColorPreservationStage functionality."""
+    """Cover ColorPreservationStage modes and fallback paths."""
 
     def setUp(self):
         """Create test images."""
@@ -501,7 +501,7 @@ class TestImageProcessingPipeline(unittest.TestCase):
 
 
 class TestStandardPipeline(unittest.TestCase):
-    """Test create_standard_pipeline factory."""
+    """Exercise the create_standard_pipeline factory."""
 
     def test_standard_pipeline_creation(self):
         """Test factory creates 6-stage pipeline."""

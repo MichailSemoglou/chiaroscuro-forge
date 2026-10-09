@@ -1,7 +1,7 @@
 """
 Integration and regression tests for the core image processing workflow.
 
-Covers end-to-end paths: load → process → metrics → save, including
+Covers end-to-end paths: load, process, metrics, save, including
 batch, tiling, preset-driven runs, config-object integration, and
 expanded CLI smoke tests.
 """

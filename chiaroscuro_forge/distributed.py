@@ -1,26 +1,31 @@
 """
-Distributed processing module for parallel image processing across multiple nodes.
+Task queues for distributing image processing across workers.
 
 This module provides a task queue system for distributing image processing work
-across multiple workers, with support for both local and remote execution.
+across multiple workers. Only the local thread-based backend is implemented;
+the Redis and Celery backends are planned interfaces, and create_queue raises
+ImportError for both.
 
 Supports:
-- Redis Queue (RQ) for simple setup
-- Celery for advanced features
 - Local threading for development
 - Result aggregation and monitoring
 - Error handling and retry logic with jitter
 - Queue health and observability
 - Context-manager lifecycle
 
-Example:
-    >>> from chiaroscuro_forge.distributed import TaskQueue, LocalQueue
-    >>>
-    >>> with LocalQueue(max_workers=4) as queue:
-    ...     task_id = queue.submit_task('process_image', 'image1.jpg',
-    ...                                gamma_correction=1.2)
-    ...     result = queue.get_result(task_id)
-    ...     print(result.status)
+Planned backends (not yet implemented):
+- Redis Queue (RQ) for simple setup
+- Celery for extended features
+
+Example
+-------
+>>> from chiaroscuro_forge.distributed import TaskQueue, LocalQueue
+>>>
+>>> with LocalQueue(max_workers=4) as queue:
+...     task_id = queue.submit_task('process_image', 'image1.jpg',
+...                                gamma_correction=1.2)
+...     result = queue.get_result(task_id)
+...     print(result.status)
 """
 
 import logging
@@ -70,17 +75,22 @@ class QueueConfig:
 
     Parameters
     ----------
-    max_workers :
-        Maximum number of worker threads (``None`` = auto, positive integer otherwise).
-    max_retries :
+    max_workers : int, optional
+        Maximum number of worker threads (``None`` = auto, positive integer
+        otherwise).
+    max_retries : int, optional
         Default maximum retry attempts per task (must be non-negative).
-    retry_delay_base :
+        Default: 3.
+    retry_delay_base : float, optional
         Base delay in seconds for exponential backoff (must be non-negative).
-    retry_jitter :
-        Maximum random jitter added to backoff delay (seconds, must be non-negative).
-    task_timeout :
-        Default per-task timeout in seconds (``None`` = no timeout, positive otherwise).
-    ttl_seconds :
+        Default: 2.0.
+    retry_jitter : float, optional
+        Maximum random jitter added to the backoff delay in seconds (must be
+        non-negative). Default: 0.5.
+    task_timeout : float, optional
+        Default per-task timeout in seconds (``None`` = no timeout, positive
+        otherwise).
+    ttl_seconds : float, optional
         Time-to-live for completed task results. Tasks older than this
         are eligible for cleanup (must be positive). Default: 1 hour.
     """
@@ -127,17 +137,20 @@ class TaskResult:
 
     @property
     def duration(self) -> Optional[float]:
+        """Return the execution time in seconds, or None if unfinished."""
         if self.started_at and self.completed_at:
             return (self.completed_at - self.started_at).total_seconds()
         return None
 
     @property
     def wait_time(self) -> Optional[float]:
+        """Report the wait time in seconds, or None if not yet started."""
         if self.created_at and self.started_at:
             return (self.started_at - self.created_at).total_seconds()
         return None
 
     def to_dict(self) -> Dict[str, Any]:
+        """Serialize the result as a plain dictionary."""
         return {
             "task_id": self.task_id,
             "status": self.status.value,
@@ -198,19 +211,76 @@ class TaskQueue(ABC):
         timeout: Optional[float] = None,
         **kwargs,
     ) -> str:
-        pass
+        """Submit a task for execution.
+
+        Parameters
+        ----------
+        func_name : str
+            Name of a registered function to run.
+        *args
+            Positional arguments forwarded to the function.
+        priority : int, optional
+            Task priority (default: 0).
+        max_retries : int, optional
+            Maximum retry attempts. The queue default applies when omitted.
+        timeout : float, optional
+            Per-task timeout in seconds. The queue default applies when
+            omitted.
+        **kwargs
+            Keyword arguments forwarded to the function.
+
+        Returns
+        -------
+        str
+            Identifier of the submitted task.
+        """
 
     @abstractmethod
     def get_result(self, task_id: str, timeout: Optional[float] = None) -> TaskResult:
-        pass
+        """Return the result of a task, waiting for completion if needed.
+
+        Parameters
+        ----------
+        task_id : str
+            Identifier of the task.
+        timeout : float, optional
+            Seconds to wait before marking the task as timed out.
+
+        Returns
+        -------
+        TaskResult
+            Final or current state of the task.
+
+        Raises
+        ------
+        ValueError
+            If the task identifier is unknown.
+        """
 
     @abstractmethod
     def cancel_task(self, task_id: str) -> bool:
-        pass
+        """Cancel a task that has not started running.
+
+        Parameters
+        ----------
+        task_id : str
+            Identifier of the task.
+
+        Returns
+        -------
+        bool
+            True if the task was cancelled, False otherwise.
+        """
 
     @abstractmethod
     def get_health(self) -> QueueHealth:
-        pass
+        """Return a snapshot of queue health and statistics.
+
+        Returns
+        -------
+        QueueHealth
+            Current status counts and timing aggregates.
+        """
 
     @abstractmethod
     def close(self) -> None:
@@ -218,11 +288,17 @@ class TaskQueue(ABC):
         pass
 
     def shutdown(self, wait: bool = True) -> None:
-        """Deprecated: use ``close()`` instead."""
+        """Shut down the queue. Deprecated alias for ``close()``.
+
+        Parameters
+        ----------
+        wait : bool, optional
+            Accepted for interface compatibility and ignored.
+        """
         self.close()
 
     def get_queue_stats(self) -> Dict[str, Any]:
-        """Deprecated: use ``get_health()`` instead."""
+        """Return legacy queue statistics; use ``get_health()`` instead."""
         health = self.get_health()
         return {
             "total": health.total,
@@ -246,6 +322,29 @@ class TaskQueue(ABC):
         timeout: Optional[float] = None,
         raise_on_error: bool = False,
     ) -> List[TaskResult]:
+        """Collect the results of several tasks.
+
+        Parameters
+        ----------
+        task_ids : list of str
+            Identifiers of the tasks to collect.
+        timeout : float, optional
+            Seconds to wait per task before marking it as timed out.
+        raise_on_error : bool, optional
+            Raise on the first failed, timed-out, or cancelled task
+            (default: False).
+
+        Returns
+        -------
+        list of TaskResult
+            One result per task, in the order of task_ids.
+
+        Raises
+        ------
+        RuntimeError
+            If raise_on_error is True and a task did not complete
+            successfully.
+        """
         results = []
         for task_id in task_ids:
             result = self.get_result(task_id, timeout=timeout)
@@ -300,6 +399,16 @@ class LocalQueue(TaskQueue):
         max_workers: Optional[int] = None,
         config: Optional[QueueConfig] = None,
     ):
+        """Create a queue backed by a local thread pool.
+
+        Parameters
+        ----------
+        max_workers : int, optional
+            Maximum number of worker threads (``None`` = auto). Ignored when
+            config is given.
+        config : QueueConfig, optional
+            Lifecycle configuration for the queue.
+        """
         if config is None:
             config = QueueConfig(max_workers=max_workers)
         else:
@@ -331,6 +440,15 @@ class LocalQueue(TaskQueue):
             logger.warning("Could not import processing functions")
 
     def register_function(self, name: str, func: Callable):
+        """Register a callable under the name tasks use to reference it.
+
+        Parameters
+        ----------
+        name : str
+            Name that submit_task accepts as func_name.
+        func : callable
+            Function to execute for matching tasks.
+        """
         self._functions[name] = func
 
     def _generate_task_id(self) -> str:
@@ -346,6 +464,34 @@ class LocalQueue(TaskQueue):
         timeout: Optional[float] = None,
         **kwargs,
     ) -> str:
+        """Submit a task to the local thread pool.
+
+        Parameters
+        ----------
+        func_name : str
+            Name of a registered function to run.
+        *args
+            Positional arguments forwarded to the function.
+        priority : int, optional
+            Recorded on the task but not used for scheduling (default: 0).
+        max_retries : int, optional
+            Maximum retry attempts. The queue default applies when omitted.
+        timeout : float, optional
+            Per-task timeout in seconds. The queue default applies when
+            omitted.
+        **kwargs
+            Keyword arguments forwarded to the function.
+
+        Returns
+        -------
+        str
+            Identifier of the submitted task.
+
+        Raises
+        ------
+        RuntimeError
+            If the queue is closed.
+        """
         with self._lock:
             if self._closed:
                 raise RuntimeError("Cannot submit tasks to a closed queue")
@@ -464,6 +610,26 @@ class LocalQueue(TaskQueue):
         return result
 
     def get_result(self, task_id: str, timeout: Optional[float] = None) -> TaskResult:
+        """Return the result of a task, waiting for completion if needed.
+
+        Parameters
+        ----------
+        task_id : str
+            Identifier of the task.
+        timeout : float, optional
+            Seconds to wait. Falls back to the task timeout, then the queue
+            default.
+
+        Returns
+        -------
+        TaskResult
+            Final or current state of the task.
+
+        Raises
+        ------
+        ValueError
+            If the task identifier is unknown.
+        """
         with self._lock:
             if task_id not in self.results:
                 raise ValueError(f"Unknown task: {task_id}")
@@ -503,6 +669,19 @@ class LocalQueue(TaskQueue):
             return self.results[task_id]
 
     def cancel_task(self, task_id: str) -> bool:
+        """Cancel a task that has not started running.
+
+        Parameters
+        ----------
+        task_id : str
+            Identifier of the task.
+
+        Returns
+        -------
+        bool
+            True if the task was cancelled, False if it is unknown or
+            already running.
+        """
         with self._lock:
             if task_id not in self.futures:
                 return False
@@ -518,6 +697,14 @@ class LocalQueue(TaskQueue):
             return bool(cancelled)
 
     def get_health(self) -> QueueHealth:
+        """Return a snapshot of queue health and statistics.
+
+        Returns
+        -------
+        QueueHealth
+            Status counts, average duration and wait time, and the latest
+            error message.
+        """
         health = QueueHealth(worker_count=self.worker_count)
         durations = []
         wait_times = []
@@ -588,11 +775,12 @@ class LocalQueue(TaskQueue):
         return removed
 
     def close(self) -> None:
+        """Shut down the queue, cancelling pending tasks and releasing resources."""
         with self._lock:
             if self._closed:
                 return
             self._closed = True
-            logger.info("LocalQueue shutting down…")
+            logger.info("LocalQueue shutting down...")
 
             shutdown_futures = []
             for task_id, future in list(self.futures.items()):
@@ -621,7 +809,7 @@ class DistributedBatchProcessor:
     ...     processor = DistributedBatchProcessor(q)
     ...     results = processor.process_batch(
     ...         image_paths=['img1.jpg', 'img2.jpg'],
-    ...         params={'gamma': 1.2},
+    ...         params={'gamma_correction': 1.2},
     ...     )
     """
 
@@ -636,6 +824,27 @@ class DistributedBatchProcessor:
         progress_callback: Optional[Callable[[int, int], None]] = None,
         timeout: Optional[float] = None,
     ) -> List[TaskResult]:
+        """Submit every image to the queue and collect the results.
+
+        Parameters
+        ----------
+        image_paths : list of str or Path
+            Images to process.
+        output_dir : str or Path, optional
+            Directory for processed images. Created if missing.
+        params : dict, optional
+            Processing parameters forwarded to process_image for every
+            image.
+        progress_callback : callable, optional
+            Called with (completed_count, total_count) after each result.
+        timeout : float, optional
+            Seconds to wait per task before marking it as timed out.
+
+        Returns
+        -------
+        list of TaskResult
+            One result per image, in submission order.
+        """
         if params is None:
             params = {}
         if output_dir:
@@ -667,6 +876,19 @@ class DistributedBatchProcessor:
         return results
 
     def aggregate_statistics(self, results: List[TaskResult]) -> Dict[str, Any]:
+        """Aggregate status and timing statistics across task results.
+
+        Parameters
+        ----------
+        results : list of TaskResult
+            Results to summarize.
+
+        Returns
+        -------
+        dict
+            Totals per status, total and average duration, and per-task
+            error details for failed tasks.
+        """
         stats: Dict[str, Any] = {
             "total_tasks": len(results),
             "successful": sum(1 for r in results if r.status == TaskStatus.COMPLETED),
@@ -713,7 +935,10 @@ def create_queue(backend: str = "local", **kwargs) -> TaskQueue:
     Raises
     ------
     ImportError
-        If the backend's optional dependency is not installed.
+        Always raised for the ``"redis"`` and ``"celery"`` backends, which
+        are planned but not yet implemented.
+    TypeError
+        If an unexpected keyword argument is given for the local backend.
     ValueError
         If *backend* is unknown.
 

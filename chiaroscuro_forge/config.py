@@ -2,8 +2,8 @@
 Shared processing configuration for Chiaroscuro Forge.
 
 This module provides a single, consistent configuration layer for all
-processing entry points: CLI, API, presets, batch runner, and
-distributed processing.
+processing entry points: the CLI, the API, the batch runner, comparison
+tools, and direct Python calls.
 
 All parameters that affect image processing behavior live in one
 dataclass, with defaults, validation, and serialization in one place.
@@ -19,8 +19,8 @@ class ProcessingConfig:
 
     This dataclass centralizes the options exposed by the CLI, API, batch
     runner, and direct Python calls. The defaults are chosen to preserve the
-    historical behavior of ``process_image`` while allowing advanced modes such
-    as the opt-in linear-light workflow to be enabled explicitly.
+    historical behavior of ``process_image`` while allowing opt-in modes such
+    as the linear-light workflow to be enabled explicitly.
 
     Notes
     -----
@@ -43,11 +43,13 @@ class ProcessingConfig:
     order_rotate : int
         Interpolation order used during rotation.
     rotation_angle : float
-        Rotation angle in degrees applied before metrics evaluation.
+        Rotation angle in degrees. A value of 0 disables rotation.
     denoise_type : str
         One of ``"gaussian"``, ``"median"``, ``"bilateral"``, or ``"none"``.
     denoise_sigma : float
-        Noise parameter for the selected denoising method.
+        Filter strength for the selected denoising method. For
+        ``"bilateral"`` it maps to ``sigma_color=denoise_sigma`` and
+        ``sigma_spatial=denoise_sigma / 2``.
     sharpen : bool
         Whether to apply a sharpening step.
     sharpen_amount : float
@@ -58,13 +60,13 @@ class ProcessingConfig:
         One of ``"standard"``, ``"clahe"``, ``"stretch"``, or
         ``"adaptive_gamma"``.
     clip_limit : float
-        CLAHE clip limit. Higher values preserve more detail but may increase
-        contrast amplification.
+        CLAHE clip limit. Higher values directly increase contrast
+        amplification.
     clip_limit_kernel_size : int
         Kernel size used by CLAHE when the method requires local context.
     contrast_stretch_percentiles : tuple
-        Low and high percentiles used for contrast stretching in normalized
-        percentage space.
+        Low and high percentiles, in the range 0-100, used for contrast
+        stretching.
     gamma_correction : float
         Gamma-adjustment factor applied during processing.
     linear_light : bool
@@ -78,8 +80,8 @@ class ProcessingConfig:
     calculate_metrics : bool
         Whether to compute the standard quality metrics for the processed result.
     calculate_advanced_metrics : bool
-        Whether to compute advanced metrics such as MS-SSIM and related
-        perceptual comparisons.
+        Whether to compute MS-SSIM and related perceptual comparisons in
+        addition to the standard quality metrics.
     use_tiling : Optional[bool]
         Whether to force tiling on or off. ``None`` allows the library to choose
         auto-detection based on image size and memory constraints.
@@ -196,6 +198,11 @@ class ProcessingConfig:
         Returns
         -------
         ProcessingConfig
+
+        Raises
+        ------
+        ValueError
+            If ``application_type`` is not a recognized application type.
         """
         overrides: dict = {}
         if application_type == "general":

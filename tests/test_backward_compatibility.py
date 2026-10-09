@@ -1,15 +1,15 @@
-"""
-Backward Compatibility Tests
+"""Backward compatibility tests for the package public API.
 
-These tests ensure that the gradual migration maintains 100% backward
-compatibility with existing code using the package.
+These tests pin the import surface: every public name remains importable
+from the top-level package and from its defining module, with matching
+signatures, and the module structure stays intact.
 """
 
 import unittest
 
 
 class TestBackwardCompatibility(unittest.TestCase):
-    """Test that all imports work as expected during migration."""
+    """Test that every public import path keeps working."""
 
     def test_main_package_imports(self):
         """Test importing from main package (most common usage)."""

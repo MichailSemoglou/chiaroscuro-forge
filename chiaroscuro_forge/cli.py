@@ -115,7 +115,6 @@ def main():
     args = parser.parse_args()
 
     try:
-        # List presets mode
         if args.list_presets:
             presets = list_presets()
             if presets:
@@ -138,7 +137,6 @@ def main():
             # Application profiles adjust processing parameters, not only metrics
             config = ProcessingConfig.preset(app_type).merge({"linear_light": args.linear})
 
-        # Load preset if specified
         if args.preset:
             try:
                 preset_params = load_preset(args.preset)
@@ -287,7 +285,6 @@ def main():
 
             print(f"Processed image saved to: {args.output}")
 
-        # Save preset if requested
         if args.save_preset:
             try:
                 save_preset(

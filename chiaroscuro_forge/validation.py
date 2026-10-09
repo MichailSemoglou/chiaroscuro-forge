@@ -1,5 +1,5 @@
 """
-Validation Utilities for Chiaroscuro Forge
+Validation Utilities for Chiaroscuro Forge.
 
 This module provides validation functions for image arrays, file paths,
 and processing parameters.
@@ -109,7 +109,7 @@ def _is_path_traversal_tilde(path: str) -> bool:
     Returns
     -------
     bool
-        True if ~ indicates path traversal, False if it's a Windows short name.
+        True if ~ indicates path traversal, False if it is a Windows short name.
     """
     # Normalize path separators for consistent checking
     normalized = path.replace("\\", "/")
@@ -133,14 +133,14 @@ def _is_path_traversal_tilde(path: str) -> bool:
 
 def _validate_image_path(image_path: str) -> None:
     """
-    Comprehensive security validation for image file paths.
+    Validate an image file path against the package security checks.
 
     Performs multiple security checks including:
     - Path traversal attack prevention (../, ~, null bytes)
     - Path length limits
     - File size limits
     - Extension whitelist validation
-    - File type verification (imghdr)
+    - File type verification (magic-number check)
 
     Parameters
     ----------
@@ -154,7 +154,7 @@ def _validate_image_path(image_path: str) -> None:
 
     Examples
     --------
-    >>> _validate_image_path("photo.jpg")  # OK
+    >>> _validate_image_path("photo.jpg")  # OK if the file exists
     >>> _validate_image_path("../etc/passwd")  # Raises - path traversal
     >>> _validate_image_path("huge_file.jpg")  # Raises if >100MB
     """
@@ -196,7 +196,7 @@ def _validate_image_path(image_path: str) -> None:
     if not os.path.exists(image_path):
         raise ImageProcessingError(f"Image file not found: {image_path}")
 
-    # Check it's a file, not a directory or special file
+    # Check it is a file, not a directory or special file
     if not os.path.isfile(image_path):
         raise ImageProcessingError(f"Path is not a regular file: {image_path}")
 
@@ -252,7 +252,7 @@ def validate_image_path(image_path: str) -> None:
     Validate that an image file path is secure and accessible.
 
     This is the public API that wraps _validate_image_path with
-    comprehensive security checks.
+    the same security checks.
 
     Parameters
     ----------
@@ -266,14 +266,35 @@ def validate_image_path(image_path: str) -> None:
 
     Examples
     --------
-    >>> validate_image_path("photo.jpg")  # Raises if file doesn't exist
+    >>> validate_image_path("photo.jpg")  # Raises if file does not exist
     >>> validate_image_path("../sensitive.jpg")  # Raises - security issue
     """
     _validate_image_path(image_path)
 
 
 def _validate_output_path(output_path: str) -> str:
+    """
+    Validate an output file path and return its resolved form.
 
+    Applies the same length, denied-pattern, and path traversal checks
+    as the input path validation, without requiring the file to exist.
+
+    Parameters
+    ----------
+    output_path : str
+        Path where the output will be written.
+
+    Returns
+    -------
+    str
+        Resolved absolute path.
+
+    Raises
+    ------
+    ImageProcessingError
+        If the path is empty, too long, contains denied patterns or
+        parent directory references, or cannot be resolved.
+    """
     if not output_path:
         raise ImageProcessingError("Output path cannot be empty")
 
@@ -367,6 +388,8 @@ def validate_processing_params(
         Strength of color preservation (0.0-1.0).
     application_type : str
         Application type for optimization.
+    linear_light : bool, default=False
+        Whether to process in linear-light space.
 
     Raises
     ------
@@ -399,9 +422,11 @@ def validate_processing_params(
 
 
 # Note: _validate_image_path is the actual implementation above.
-# The public API validate_image_path() calls it.
-# Do NOT create backward compat aliases here - they cause infinite recursion.
-# For backward compatibility with code expecting underscore prefix:
+# The public API validate_image_path() calls it, so aliasing that
+# underscore name to the public function would recurse infinitely.
+# The single alias below is intentional and safe: validate_processing_params
+# delegates to validate_config and never calls the underscore name, so the
+# backward-compatible name cannot recurse.
 _validate_processing_params = validate_processing_params
 
 
@@ -411,6 +436,7 @@ def validate_config(config: "ProcessingConfig") -> None:
     Parameters
     ----------
     config : ProcessingConfig
+        Configuration instance whose fields are checked.
 
     Raises
     ------

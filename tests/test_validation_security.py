@@ -1,14 +1,11 @@
-"""
-Unit tests for validation.py security features - Phase 2.1
+"""Unit tests for the security controls in validation.py.
 
-Tests comprehensive security controls including:
+Covers:
 - Path traversal prevention
 - File size limits
 - Dimension limits
 - Extension whitelist
 - Magic number verification
-
-Target: 13% → 80% coverage for validation.py
 """
 
 import os

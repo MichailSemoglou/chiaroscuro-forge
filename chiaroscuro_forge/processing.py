@@ -75,8 +75,60 @@ def process_image(
         Destination path for the processed image. If omitted, the image is only
         returned in memory.
     config : ProcessingConfig, optional
-        Unified configuration object. When supplied, it takes precedence over
-        legacy keyword arguments.
+        Unified configuration object. When supplied, every legacy keyword
+        argument below is ignored.
+    order : int, default=1
+        Interpolation order used for general image operations.
+    order_rescale : int, default=1
+        Interpolation order used during rescaling.
+    order_rotate : int, default=1
+        Interpolation order used during rotation.
+    scale_factor : float, default=1.0
+        Scaling factor for resizing. Values above 1.0 enlarge the image.
+    denoise_type : str, default="gaussian"
+        One of ``"gaussian"``, ``"median"``, ``"bilateral"``, or ``"none"``.
+    denoise_sigma : float, default=1.0
+        Filter strength for the selected denoising method.
+    sharpen : bool, default=True
+        Whether to apply a sharpening step.
+    sharpen_amount : float, default=1.5
+        Sharpening strength. Higher values increase enhancement intensity.
+    equalize : bool, default=True
+        Whether histogram equalization is enabled.
+    equalize_method : str, default="stretch"
+        One of ``"standard"``, ``"clahe"``, ``"stretch"``, or
+        ``"adaptive_gamma"``.
+    clip_limit : float, default=0.03
+        CLAHE clip limit. Higher values increase contrast amplification.
+    clip_limit_kernel_size : int, default=8
+        Kernel size used by CLAHE for local context.
+    contrast_stretch_percentiles : tuple of float, default=(2.0, 98.0)
+        Low and high percentiles, in the range 0-100, used for contrast
+        stretching.
+    gamma_correction : float, default=1.0
+        Gamma-adjustment factor applied during processing.
+    color_preservation : str, default="lab"
+        One of ``"none"``, ``"lab"``, ``"rgb"``, or ``"ratio"``.
+    color_preservation_strength : float, default=0.7
+        Relative strength of the selected color-preservation strategy.
+    calculate_metrics : bool, default=True
+        Whether to compute quality metrics for the processed result.
+    calculate_advanced_metrics : bool, default=True
+        Whether to compute MS-SSIM and related perceptual comparisons.
+    application_type : str, default="general"
+        Application type used to weight the aggregate quality score.
+    use_tiling : bool or None, default=None
+        Whether to force tiled processing on or off. ``None`` lets the library
+        choose based on image size and memory constraints.
+    tile_size : int, default=512
+        Tile side length used when tiling is active.
+    tile_overlap : int, default=64
+        Pixel overlap between neighboring tiles.
+    rotation_angle : float, default=0.0
+        Rotation angle in degrees. A value of 0 disables rotation.
+    linear_light : bool, default=False
+        Whether to process in linear-light space with a final tone-mapping
+        step. Opt-in; see Notes.
 
     Returns
     -------

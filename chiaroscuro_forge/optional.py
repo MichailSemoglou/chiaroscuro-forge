@@ -80,6 +80,7 @@ def is_available(*dependencies: str) -> bool:
     Returns
     -------
     bool
+        ``True`` if every listed package can be imported.
     """
     for dep in dependencies:
         try:
@@ -94,10 +95,11 @@ def requires_optional(
     feature: str = "",
     install_hint: str = "",
 ) -> Callable:
-    """Decorator: skip the decorated function when dependencies are absent.
+    """Require optional packages before running the decorated function.
 
     If any required package is missing, calling the function raises
     ``ImportError`` with a message that lists the missing packages.
+
     Parameters
     ----------
     packages :
@@ -111,6 +113,7 @@ def requires_optional(
     Returns
     -------
     Callable
+        A decorator that guards the function with the dependency check.
     """
 
     def decorator(func: Callable) -> Callable:

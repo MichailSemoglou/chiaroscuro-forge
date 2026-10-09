@@ -1,5 +1,5 @@
 """
-Comprehensive tests for comparison module.
+Tests for the comparison module.
 
 Tests cover:
 - compare_processing_methods: multiple method comparison

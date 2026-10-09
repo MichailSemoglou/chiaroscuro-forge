@@ -1,5 +1,5 @@
 """
-Configuration Constants for Chiaroscuro Forge
+Configuration Constants for Chiaroscuro Forge.
 
 This module contains all configuration constants used throughout the package,
 including default values and thresholds.
@@ -9,30 +9,38 @@ import warnings
 
 # SSIM Calculation Constants
 DEFAULT_WIN_SIZE = 7
-"""Default window size for SSIM calculation"""
+"""Default window size for SSIM calculation. Retained for backward
+compatibility; not read by the current implementation."""
 
 MIN_WIN_SIZE = 3
-"""Minimum window size for SSIM"""
+"""Minimum window size for SSIM. Retained for backward compatibility;
+not read by the current implementation."""
 
 # Feature Detection Constants
 MIN_CELL_SIZE = 8
-"""Minimum cell size for HOG feature extraction"""
+"""Minimum cell size for HOG feature extraction. Retained for backward
+compatibility; not read by the current implementation."""
 
 CELL_SIZE_DIVISOR = 32
-"""Divisor for calculating dynamic cell size"""
+"""Divisor for calculating dynamic cell size. Retained for backward
+compatibility; not read by the current implementation."""
 
 MAX_ORB_KEYPOINTS = 500
-"""Maximum number of ORB keypoints to detect"""
+"""Maximum number of ORB keypoints to detect. Retained for backward
+compatibility; not read by the current implementation."""
 
 ORB_KEYPOINT_DENSITY = 1000
-"""Density factor for calculating dynamic keypoint count"""
+"""Density factor for calculating dynamic keypoint count. Retained for
+backward compatibility; not read by the current implementation."""
 
 ORB_FAST_THRESHOLD = 0.05
-"""FAST corner detection threshold for ORB"""
+"""FAST corner detection threshold for ORB. Retained for backward
+compatibility; not read by the current implementation."""
 
 # Edge Detection Constants
 DEFAULT_EDGE_SIGMA = 1.0
-"""Default sigma for Canny edge detection"""
+"""Default sigma for Canny edge detection. Retained for backward
+compatibility; not read by the current implementation."""
 
 MIN_EDGE_DENSITY_LOW = 0.02
 """Threshold for low edge density (needs more sharpening)"""
@@ -98,7 +106,7 @@ DEFAULT_TILE_SIZE = 512
 """Default tile size for large image processing (pixels)"""
 
 DEFAULT_TILE_OVERLAP = 64
-"""Default overlap between tiles for seamless stitching (pixels)"""
+"""Default overlap between tiles for blended stitching (pixels)"""
 
 TILING_MEMORY_THRESHOLD_MB = 100.0
 """Memory threshold in MB above which tiling is used"""
@@ -131,13 +139,16 @@ VALID_FEATURE_METHODS = ["hog", "orb", "canny"]
 
 # Normalization Constants
 PSNR_MIN = 20.0
-"""Minimum PSNR value for normalization"""
+"""Minimum PSNR value for normalization. Retained for backward
+compatibility; not read by the current implementation."""
 
 PSNR_RANGE = 30.0
-"""PSNR range for normalization (max - min)"""
+"""PSNR range for normalization (max - min). Retained for backward
+compatibility; not read by the current implementation."""
 
 MSE_SCALE = 20.0
-"""Scale factor for MSE normalization"""
+"""Scale factor for MSE normalization. Retained for backward
+compatibility; not read by the current implementation."""
 
 # Luminance Coefficients (ITU-R BT.709)
 LUMINANCE_R = 0.2126

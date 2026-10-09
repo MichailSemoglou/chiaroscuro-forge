@@ -1,8 +1,9 @@
 """
-Tile-Based Image Processing Module
+Tile-based processing for large images.
 
-Provides memory-efficient processing for large images through tiling.
-Supports configurable tile sizes with overlap for seamless stitching.
+Provides memory-efficient processing through tiling. Supports configurable
+tile sizes with overlap, blending the overlap regions so tile boundaries
+stay invisible in the stitched result.
 """
 
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -19,18 +20,26 @@ def calculate_tile_grid(
     """
     Calculate tile positions for processing a large image.
 
-    Args:
-        image_shape: (height, width) of the image
-        tile_size: Size of each tile (square tiles)
-        overlap: Overlap between adjacent tiles in pixels
+    Parameters
+    ----------
+    image_shape : tuple of int
+        (height, width) of the image
+    tile_size : int
+        Size of each tile (square tiles)
+    overlap : int
+        Overlap between adjacent tiles in pixels
 
-    Returns:
-        Tuple of (tile_coords, grid_shape) where:
-        - tile_coords: List of (y_start, y_end, x_start, x_end) for each tile
-        - grid_shape: (rows, cols) number of tiles in each dimension
+    Returns
+    -------
+    tuple
+        ``(tile_coords, grid_shape)`` where ``tile_coords`` is a list of
+        ``(y_start, y_end, x_start, x_end)`` per tile and ``grid_shape``
+        is ``(rows, cols)``, the number of tiles in each dimension
 
-    Raises:
-        ImageProcessingError: If parameters are invalid
+    Raises
+    ------
+    ImageProcessingError
+        If parameters are invalid
     """
     if tile_size <= 0:
         raise ImageProcessingError("Tile size must be positive")
@@ -44,7 +53,6 @@ def calculate_tile_grid(
     if height <= 0 or width <= 0:
         raise ImageProcessingError("Image dimensions must be positive")
 
-    # Calculate stride (step between tiles)
     stride = tile_size - overlap
 
     # Calculate number of tiles needed in each dimension
@@ -57,7 +65,7 @@ def calculate_tile_grid(
         y_start = row * stride
         y_end = min(y_start + tile_size, height)
 
-        # Adjust start if we're at the end and tile would be too small
+        # Adjust the start when the tile reaches the edge and would be too small
         if y_end == height and (y_end - y_start) < tile_size // 2:
             y_start = max(0, height - tile_size)
 
@@ -65,7 +73,7 @@ def calculate_tile_grid(
             x_start = col * stride
             x_end = min(x_start + tile_size, width)
 
-            # Adjust start if we're at the end and tile would be too small
+            # Adjust the start when the tile reaches the edge and would be too small
             if x_end == width and (x_end - x_start) < tile_size // 2:
                 x_start = max(0, width - tile_size)
 
@@ -78,15 +86,22 @@ def extract_tile(image: np.ndarray, tile_coords: Tuple[int, int, int, int]) -> n
     """
     Extract a tile from an image.
 
-    Args:
-        image: Input image array
-        tile_coords: (y_start, y_end, x_start, x_end)
+    Parameters
+    ----------
+    image : numpy.ndarray
+        Input image array
+    tile_coords : tuple of int
+        (y_start, y_end, x_start, x_end)
 
-    Returns:
-        Extracted tile as numpy array
+    Returns
+    -------
+    numpy.ndarray
+        Extracted tile
 
-    Raises:
-        ImageProcessingError: If extraction fails
+    Raises
+    ------
+    ImageProcessingError
+        If extraction fails
     """
     validate_array(image)
 
@@ -106,19 +121,29 @@ def blend_overlap(tile1: np.ndarray, tile2: np.ndarray, overlap: int, axis: int)
     """
     Blend the overlapping region between two adjacent tiles.
 
-    Uses linear blending to create seamless transitions.
+    Uses linear blending to smooth the transition across the overlap.
 
-    Args:
-        tile1: First tile
-        tile2: Second tile
-        overlap: Number of pixels to blend
-        axis: 0 for vertical blend (top-bottom), 1 for horizontal (left-right)
+    Parameters
+    ----------
+    tile1 : numpy.ndarray
+        First tile
+    tile2 : numpy.ndarray
+        Second tile
+    overlap : int
+        Number of pixels to blend
+    axis : int
+        0 for vertical blend (top-bottom), 1 for horizontal (left-right)
 
-    Returns:
-        Blended tile
+    Returns
+    -------
+    numpy.ndarray
+        Blended tile. When ``overlap`` is not positive, ``tile1`` is
+        returned unchanged
 
-    Raises:
-        ImageProcessingError: If blending fails
+    Raises
+    ------
+    ImageProcessingError
+        If blending fails
     """
     if overlap <= 0:
         return tile1
@@ -171,19 +196,29 @@ def stitch_tiles(
     """
     Stitch processed tiles back into a single image.
 
-    Uses weighted blending in overlap regions for seamless results.
+    Uses weighted blending in overlap regions to avoid visible seams.
 
-    Args:
-        tiles: List of processed tiles
-        tile_coords: List of (y_start, y_end, x_start, x_end) for each tile
-        output_shape: (height, width) or (height, width, channels) of output
-        overlap: Overlap used during tiling
+    Parameters
+    ----------
+    tiles : list of numpy.ndarray
+        Processed tiles
+    tile_coords : list of tuple
+        (y_start, y_end, x_start, x_end) for each tile
+    output_shape : tuple of int
+        (height, width) of the output image. Channel count is appended
+        automatically from the tile shape; do not include it here
+    overlap : int
+        Overlap used during tiling
 
-    Returns:
+    Returns
+    -------
+    numpy.ndarray
         Stitched image
 
-    Raises:
-        ImageProcessingError: If stitching fails
+    Raises
+    ------
+    ImageProcessingError
+        If stitching fails
     """
     if not tiles:
         raise ImageProcessingError("No tiles to stitch")
@@ -251,28 +286,39 @@ def process_image_tiled(
     process_fn_kwargs: Optional[Dict[str, Any]] = None,
 ) -> np.ndarray:
     """
-    Process a large image using tile-based processing.
+    Process a large image tile by tile.
 
-    Automatically splits the image into tiles, processes each independently,
-    and stitches them back together with seamless blending.
+    Splits the image into tiles, processes each independently, and stitches
+    the results back together, blending the overlap regions.
 
-    Args:
-        image: Input image to process
-        process_fn: Function to apply to each tile
-        tile_size: Size of square tiles (default: 512)
-        overlap: Overlap between tiles for seamless stitching (default: 64)
-        process_fn_kwargs: Additional keyword arguments for process_fn
+    Parameters
+    ----------
+    image : numpy.ndarray
+        Input image to process
+    process_fn : callable
+        Function to apply to each tile
+    tile_size : int, default=512
+        Size of square tiles
+    overlap : int, default=64
+        Overlap between tiles, blended during stitching
+    process_fn_kwargs : dict, optional
+        Additional keyword arguments for ``process_fn``
 
-    Returns:
+    Returns
+    -------
+    numpy.ndarray
         Processed image
 
-    Raises:
-        ImageProcessingError: If processing fails
+    Raises
+    ------
+    ImageProcessingError
+        If processing fails
 
-    Example:
-        >>> def enhance_tile(tile, **kwargs):
-        ...     return some_enhancement(tile)
-        >>> result = process_image_tiled(large_image, enhance_tile)
+    Examples
+    --------
+    >>> def enhance_tile(tile, **kwargs):
+    ...     return some_enhancement(tile)
+    >>> result = process_image_tiled(large_image, enhance_tile)
     """
     validate_array(image)
 
@@ -294,7 +340,6 @@ def process_image_tiled(
         except Exception as e:
             raise ImageProcessingError(f"Failed to process tile at {coords}: {e}")
 
-    # Stitch tiles back together
     result = stitch_tiles(processed_tiles, tile_coords, image.shape[:2], overlap)
 
     return result
@@ -306,12 +351,18 @@ def should_use_tiling(
     """
     Determine if an image should use tile-based processing.
 
-    Args:
-        image_shape: (height, width) of the image
-        memory_threshold_mb: Memory threshold in megabytes (default: 100 MB)
-        bytes_per_pixel: Bytes per pixel (3 for RGB, 1 for grayscale, 4 for RGBA)
+    Parameters
+    ----------
+    image_shape : tuple of int
+        (height, width) of the image
+    memory_threshold_mb : float, default=100.0
+        Memory threshold in megabytes
+    bytes_per_pixel : int, default=3
+        Bytes per pixel (3 for RGB, 1 for grayscale, 4 for RGBA)
 
-    Returns:
+    Returns
+    -------
+    bool
         True if tiling should be used, False otherwise
     """
     height, width = image_shape[:2]

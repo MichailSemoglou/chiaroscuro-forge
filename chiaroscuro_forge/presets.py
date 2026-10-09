@@ -47,9 +47,8 @@ def load_preset(preset_name: str) -> Dict[str, Any]:
     """
     Load a preset configuration from disk.
 
-    Results are cached indefinitely to avoid repeated disk I/O.
-    Cache is automatically invalidated when presets are saved
-    Load a preset configuration from disk.
+    Results are cached indefinitely to avoid repeated disk I/O. The cache
+    is automatically invalidated when presets are saved.
 
     Parameters
     ----------
@@ -132,7 +131,6 @@ def save_preset(preset_name: str, params: Dict[str, Any], description: str = "")
         with open(preset_path, "w") as f:
             json.dump(preset_data, f, indent=4)
 
-        # Invalidate cache for this preset
         invalidate_preset_cache(preset_name)
     except Exception as e:
         raise ImageProcessingError(f"Failed to save preset: {e}")

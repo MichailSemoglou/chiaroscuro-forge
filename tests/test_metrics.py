@@ -1,5 +1,5 @@
 """
-Comprehensive tests for metrics module.
+Tests for the metrics module.
 
 Testing all quality metrics functions including SSIM, MS-SSIM, feature similarity,
 histogram similarity, perceptual metrics, and quality score calculation.

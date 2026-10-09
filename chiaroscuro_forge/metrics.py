@@ -86,8 +86,10 @@ def ms_ssim(
     img2 : np.ndarray
         Second image array (processed or comparison)
     weights : list of float, optional
-        Weight vector for the multilayer product. If None, uses the published
-        Wang et al. (2003) defaults.
+        Weight vector for the multi-scale combination. If None, uses the
+        published Wang et al. (2003) defaults. With ``method="wang"`` the
+        weights exponentiate a product of scale terms; with
+        ``method="mean"`` they scale a per-scale average instead.
     levels : int, default=5
         Number of Gaussian scales to evaluate.
     method : str, default="wang"
@@ -97,7 +99,10 @@ def ms_ssim(
     Returns
     -------
     float
-        MS-SSIM value between 0 and 1 (1 indicates identical images)
+        MS-SSIM value between 0 and 1 (1 indicates identical images) for
+        ``method="wang"``. With ``method="mean"`` the result is an
+        unclipped weighted average of per-scale SSIM values and can be
+        negative.
 
     Raises
     ------
@@ -430,15 +435,16 @@ def lpips_similarity(
     Learned Perceptual Image Patch Similarity (LPIPS).
 
     Computes perceptual distance using deep features from a pretrained
-    AlexNet or VGG network. Requires the optional ``lpips`` package.
-    Falls back to MS-SSIM via ``ms_ssim`` when not installed.
+    AlexNet network. Requires the optional ``lpips`` package.
+    Falls back to MS-SSIM via ``ms_ssim`` when the package is not
+    installed and when the LPIPS calculation itself fails at runtime.
 
     Input arrays are scaled from [0, 1] to [-1, 1] before inference,
     matching the calibration of the published networks.
 
     LPIPS is a distance metric (lower = more similar), correlating with
-    human judgments at r ≈ 0.9 versus SSIM's r ≈ 0.7 (Zhang et al.,
-    CVPR 2018).
+    human judgments at r approx. 0.9 versus SSIM's r approx. 0.7 (Zhang
+    et al., CVPR 2018).
 
     Parameters
     ----------
@@ -506,7 +512,7 @@ def calculate_perceptual_metrics(
     calculate_advanced: bool = True,
 ) -> Dict[str, float]:
     """
-    Calculate comprehensive perceptual quality metrics.
+    Calculate perceptual quality metrics for a processed image.
 
     Parameters
     ----------
@@ -515,7 +521,8 @@ def calculate_perceptual_metrics(
     processed : np.ndarray
         Processed image array
     calculate_advanced : bool, default=True
-        Whether to calculate advanced metrics (feature similarity, etc.)
+        Whether to calculate additional metrics (feature similarity,
+        histogram similarity, LPIPS, and color preservation)
 
     Returns
     -------
@@ -707,7 +714,6 @@ def calculate_quality_score(
             if metric == "psnr":
                 value = min(1.0, max(0.0, (value - 20.0) / 30.0))
 
-            # Ensure value is in 0-1 range
             value = max(0.0, min(1.0, value))
 
             score += weight * value

@@ -1,3 +1,5 @@
+"""Tests for the optional-dependency helpers in chiaroscuro_forge.optional."""
+
 import pytest
 
 from chiaroscuro_forge import optional as optional_module

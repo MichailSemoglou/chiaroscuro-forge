@@ -22,22 +22,34 @@ from .validation import _validate_output_path
 
 
 def setup_logger(log_file=None, log_level=logging.INFO):
-    """Setup logging configuration."""
+    """Set up logging for batch processing.
+
+    Parameters
+    ----------
+    log_file : str, optional
+        Path to a log file. When given, a file handler is added and its
+        parent directory is created if missing.
+    log_level : int, optional
+        Logging level for the logger (default: logging.INFO).
+
+    Returns
+    -------
+    logging.Logger
+        The configured "batch_processor" logger, with existing handlers
+        replaced.
+    """
     logger = logging.getLogger("batch_processor")
     logger.setLevel(log_level)
 
-    # Clear existing handlers
     if logger.handlers:
         logger.handlers = []
 
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
-    # Console handler
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
-    # File handler if log_file is provided
     if log_file:
         # Ensure parent directory exists (needed for Windows)
         log_dir = os.path.dirname(log_file)
@@ -53,7 +65,26 @@ def setup_logger(log_file=None, log_level=logging.INFO):
 def _process_single_image_wrapper(
     input_path, output_path, params=None, application_type="general", config=None
 ):
-    """Wrapper for ProcessPoolExecutor that sends params or config."""
+    """Send one image through the pool with either params or config.
+
+    Parameters
+    ----------
+    input_path : str
+        Path to the input image.
+    output_path : str
+        Path for the processed image.
+    params : dict, optional
+        Processing parameters forwarded to process_image.
+    application_type : str, optional
+        Application type for processing optimization (default: "general").
+    config : ProcessingConfig, optional
+        Configuration object. Takes precedence over params when given.
+
+    Returns
+    -------
+    dict
+        Result dictionary, or ``{"error": message}`` if processing fails.
+    """
     try:
         if config is not None:
             return _process_single_image(
@@ -74,7 +105,34 @@ def _process_single_image(
     config=None,
     logger=None,
 ) -> Dict[str, Any]:
-    """Process a single image and return results."""
+    """Process a single image and return the result.
+
+    Parameters
+    ----------
+    input_path : str
+        Path to the input image.
+    output_path : str
+        Path for the processed image.
+    params : dict, optional
+        Processing parameters forwarded to process_image. Ignored when
+        config is given.
+    application_type : str, optional
+        Application type for processing optimization (default: "general").
+    config : ProcessingConfig, optional
+        Configuration object. Takes precedence over params when given.
+    logger : logging.Logger, optional
+        Logger for progress and error messages.
+
+    Returns
+    -------
+    dict
+        Dictionary with status, output_path, and metrics keys.
+
+    Raises
+    ------
+    Exception
+        Re-raises any processing failure after logging it.
+    """
     if logger:
         logger.info("Processing: %s", os.path.basename(input_path))
 
@@ -113,26 +171,47 @@ def batch_process_images(
     generate_report: bool = True,
     log_file: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """
-    Process multiple images matching the input pattern.
+    """Process multiple images matching the input pattern.
 
-    Args:
-        input_pattern: Glob pattern to match input images (e.g., "input/*.jpg")
-        output_dir: Directory to save processed images
-        params: Processing parameters to use for all images
-        preset_name: Name of a preset to use (alternative to params)
-        application_type: Application type for processing optimization
-        n_workers: Number of parallel workers for processing
-        skip_existing: Skip processing if output file already exists
-        generate_report: Generate a JSON report with processing results
-        log_file: Path to log file (optional)
+    Parameters
+    ----------
+    input_pattern : str
+        Glob pattern to match input images (e.g., "input/*.jpg").
+    output_dir : str
+        Directory to save processed images.
+    params : dict, optional
+        Processing parameters to use for all images.
+    config : ProcessingConfig, optional
+        Configuration object applied to all images. Takes precedence over
+        preset_name and params when given.
+    preset_name : str, optional
+        Name of a preset to use (alternative to params).
+    application_type : str, optional
+        Application type for processing optimization (default: "general").
+    n_workers : int, optional
+        Number of parallel workers (default: 4). A value of 1 or less runs
+        sequentially in the current process.
+    skip_existing : bool, optional
+        Skip processing if the output file already exists (default: False).
+    generate_report : bool, optional
+        Write a JSON report with processing results (default: True).
+    log_file : str, optional
+        Path to a log file.
 
-    Returns:
-        Dictionary with processing results
+    Returns
+    -------
+    dict
+        Counts of successful, failed, and skipped images, the total
+        processing time, and a per-file result mapping.
+
+    Raises
+    ------
+    ImageProcessingError
+        If the output directory cannot be created or no files match
+        input_pattern.
     """
     logger = setup_logger(log_file)
 
-    # Create output directory if it doesn't exist
     safe_output = _validate_output_path(output_dir)
     if not os.path.exists(safe_output):
         try:
@@ -142,7 +221,6 @@ def batch_process_images(
             logger.error("Failed to create output directory: %s", type(e).__name__)
             raise ImageProcessingError(f"Failed to create output directory: {e}") from e
 
-    # Get list of input files
     input_files = glob.glob(input_pattern)
     if not input_files:
         logger.error(f"No files found matching pattern: {input_pattern}")
@@ -150,7 +228,7 @@ def batch_process_images(
 
     logger.info(f"Found {len(input_files)} files to process")
 
-    # Load preset if specified (config-based path takes precedence)
+    # A provided config takes precedence over preset_name and params.
     use_config = config is not None
 
     if use_config:
@@ -166,7 +244,6 @@ def batch_process_images(
     else:
         processing_params = params or {}
 
-    # Prepare processing tasks
     tasks = []
     for input_path in input_files:
         filename = os.path.basename(input_path)
@@ -181,7 +258,6 @@ def batch_process_images(
 
     logger.info(f"Preparing to process {len(tasks)} images with {n_workers} workers")
 
-    # Initialize results
     file_results: Dict[str, Any] = {}
     results: Dict[str, Any] = {
         "successful": 0,
@@ -192,7 +268,6 @@ def batch_process_images(
         "files": file_results,
     }
 
-    # Process images in parallel
     start_time = time.time()
 
     if n_workers <= 1:
@@ -273,7 +348,6 @@ def batch_process_images(
         f"Successful: {results['successful']}, Failed: {results['failed']}, Skipped: {results['skipped']}"
     )
 
-    # Generate report if requested
     if generate_report:
         report_path = os.path.join(safe_output, "batch_processing_report.json")
         try:
@@ -287,17 +361,26 @@ def batch_process_images(
 
 
 def analyze_batch(input_pattern: str, output_file: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Analyze multiple images to extract characteristics.
+    """Analyze multiple images to extract characteristics.
 
-    Args:
-        input_pattern: Glob pattern to match input images
-        output_file: Optional file to save analysis results (JSON)
+    Parameters
+    ----------
+    input_pattern : str
+        Glob pattern to match input images.
+    output_file : str, optional
+        Path to save analysis results as JSON.
 
-    Returns:
-        Dictionary with analysis results
+    Returns
+    -------
+    dict
+        Per-image analyses plus summary statistics (min, max, and average
+        for brightness, contrast, noise level, and edge density).
+
+    Raises
+    ------
+    ImageProcessingError
+        If no files match input_pattern or the results cannot be saved.
     """
-    # Get list of input files
     input_files = glob.glob(input_pattern)
     if not input_files:
         raise ImageProcessingError(f"No files found matching pattern: {input_pattern}")
@@ -314,13 +397,11 @@ def analyze_batch(input_pattern: str, output_file: Optional[str] = None) -> Dict
         },
     }
 
-    # Analyze each image
     for input_path in input_files:
         try:
             analysis = analyze_image_characteristics(input_path)
             results["analyses"][input_path] = analysis
 
-            # Update summary statistics
             chars = analysis["characteristics"]
             aggregate_summary: Dict[str, Any] = results["summary"]
             if chars["is_color"]:
@@ -336,7 +417,6 @@ def analyze_batch(input_pattern: str, output_file: Optional[str] = None) -> Dict
         except Exception as e:
             results["analyses"][input_path] = {"error": str(e)}
 
-    # Calculate averages
     successful_analyses = len(results["analyses"]) - sum(
         1 for result in results["analyses"].values() if "error" in result
     )
@@ -347,7 +427,6 @@ def analyze_batch(input_pattern: str, output_file: Optional[str] = None) -> Dict
             metric_averages: Dict[str, Any] = summary_stats[metric]
             metric_averages["avg"] = metric_averages["sum"] / successful_analyses
 
-    # Save output if requested
     if output_file:
         try:
             with open(output_file, "w") as f:

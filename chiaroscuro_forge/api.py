@@ -6,29 +6,30 @@ with authentication, rate limiting, and async support.
 
 Features:
 - Image processing endpoints
-- Batch processing
 - Job status monitoring with TTL cleanup
 - API key authentication with key management
 - Rate limiting
 - Health and observability endpoints
 - OpenAPI documentation
 
-Example:
-    Start the server:
-    ```bash
-    uvicorn chiaroscuro_forge.api:app --reload
-    ```
+Example
+-------
+Start the server:
+```bash
+uvicorn chiaroscuro_forge.api:app --reload
+```
 
-    Access the API:
-    ```python
-    import requests
+Access the API (endpoints require the X-API-Key header):
+```python
+import requests
 
-    response = requests.post(
-        'http://localhost:8000/api/v1/process',
-        files={'image': open('input.jpg', 'rb')},
-        data={'gamma': '1.2'}
-    )
-    ```
+response = requests.post(
+    'http://localhost:8000/api/v1/process',
+    headers={'X-API-Key': 'sk_your_key_here'},
+    files={'image': open('input.jpg', 'rb')},
+    data={'gamma': '1.2'}
+)
+```
 """
 
 import logging
@@ -99,19 +100,23 @@ if FASTAPI_AVAILABLE:
             None, ge=0.0, le=1.0, description="Color preservation strength"
         )
         calculate_advanced_metrics: Optional[bool] = Field(
-            None, description="Enable advanced metrics"
+            None, description="Enable MS-SSIM and related perceptual metrics"
         )
         use_tiling: Optional[bool] = Field(None, description="Force tiling on/off")
         tile_size: Optional[int] = Field(None, description="Tile size")
         tile_overlap: Optional[int] = Field(None, description="Tile overlap")
 
     class JobStatus(str, Enum):
+        """Lifecycle states of a background processing job."""
+
         PENDING = "pending"
         PROCESSING = "processing"
         COMPLETED = "completed"
         FAILED = "failed"
 
     class JobInfo(BaseModel):
+        """Status and result payload returned for a single job."""
+
         job_id: str
         status: JobStatus
         created_at: datetime
@@ -122,17 +127,23 @@ if FASTAPI_AVAILABLE:
         error: Optional[str] = None
 
     class APIResponse(BaseModel):
+        """Standard response envelope for non-job endpoints."""
+
         success: bool
         message: str
         data: Optional[Dict[str, Any]] = None
 
     class HealthInfo(BaseModel):
+        """Service health snapshot with job counts and uptime."""
+
         status: str
         timestamp: datetime
         jobs: Dict[str, int]
         uptime_seconds: float
 
     class HealthResponse(APIResponse):
+        """API response whose data payload is a HealthInfo object."""
+
         data: Optional[HealthInfo] = None  # type: ignore[assignment]
 
 else:
@@ -191,6 +202,22 @@ class APIKeyManager:
         name: str = "API Key",
         rate_limit: int = 100,
     ) -> str:
+        """Create and register an API key.
+
+        Parameters
+        ----------
+        key : str, optional
+            Key value to register. A random token is generated when omitted.
+        name : str, optional
+            Display name for the key (default: "API Key").
+        rate_limit : int, optional
+            Maximum requests allowed per hour (default: 100).
+
+        Returns
+        -------
+        str
+            The registered key value.
+        """
         if key is None:
             key = f"sk_{secrets.token_urlsafe(32)}"
         with self._lock:
@@ -204,6 +231,18 @@ class APIKeyManager:
         return key
 
     def revoke_key(self, key: str) -> bool:
+        """Revoke an API key.
+
+        Parameters
+        ----------
+        key : str
+            Key to revoke.
+
+        Returns
+        -------
+        bool
+            True if the key existed and was removed, False otherwise.
+        """
         with self._lock:
             if key in self._keys:
                 del self._keys[key]
@@ -212,6 +251,14 @@ class APIKeyManager:
             return False
 
     def list_keys(self) -> List[Dict[str, Any]]:
+        """List registered keys without exposing the key values.
+
+        Returns
+        -------
+        list of dict
+            One entry per key with its name, creation time, rate limit, and
+            request count for the last hour.
+        """
         with self._lock:
             return [
                 {
@@ -226,9 +273,34 @@ class APIKeyManager:
             ]
 
     def validate_key(self, key: str) -> bool:
+        """Check whether a key is registered.
+
+        Parameters
+        ----------
+        key : str
+            Key to validate.
+
+        Returns
+        -------
+        bool
+            True if the key is registered, False otherwise.
+        """
         return key in self._keys
 
     def check_rate_limit(self, key: str) -> bool:
+        """Enforce the hourly rate limit and record the request.
+
+        Parameters
+        ----------
+        key : str
+            Key to check.
+
+        Returns
+        -------
+        bool
+            True if the request is allowed, False if the key is unknown or
+            the limit is exceeded.
+        """
         with self._lock:
             if key not in self._keys:
                 return False
@@ -257,6 +329,13 @@ class JobManager:
         self._start_time = datetime.now()
 
     def create_job(self) -> str:
+        """Create a job in the pending state.
+
+        Returns
+        -------
+        str
+            Identifier of the new job.
+        """
         with self._lock:
             self._job_counter += 1
             job_id = f"job_{self._job_counter}_{int(time.time() * 1000)}"
@@ -272,6 +351,19 @@ class JobManager:
             return job_id
 
     def get_job(self, job_id: str) -> Optional[Any]:
+        """Return the current state of a job.
+
+        Parameters
+        ----------
+        job_id : str
+            Identifier of the job.
+
+        Returns
+        -------
+        JobInfo or None
+            Job details, or None if the job is unknown or FastAPI is not
+            installed.
+        """
         job = self._jobs.get(job_id)
         if not job or not FASTAPI_AVAILABLE:
             return None
@@ -294,6 +386,24 @@ class JobManager:
         result: Optional[Any] = None,
         error: Optional[str] = None,
     ):
+        """Update fields of an existing job.
+
+        Unknown job identifiers are logged and ignored. A terminal status
+        ("completed" or "failed") records the completion time.
+
+        Parameters
+        ----------
+        job_id : str
+            Identifier of the job.
+        status : JobStatus, optional
+            New status value.
+        progress : float, optional
+            Progress fraction between 0 and 1.
+        result : dict, optional
+            Result payload stored on the job.
+        error : str, optional
+            Error message stored on the job.
+        """
         with self._lock:
             if job_id not in self._jobs:
                 logger.warning("Job %s not found for update", job_id)
@@ -314,6 +424,13 @@ class JobManager:
                 logger.info("Job %s %s", job_id, status)
 
     def cleanup_expired_jobs(self) -> int:
+        """Delete completed and failed jobs older than JOB_TTL_HOURS.
+
+        Returns
+        -------
+        int
+            Number of jobs removed.
+        """
         cutoff = datetime.now() - timedelta(hours=JOB_TTL_HOURS)
         removed = 0
         with self._lock:
@@ -332,6 +449,13 @@ class JobManager:
         return removed
 
     def job_counts(self) -> Dict[str, int]:
+        """Count tracked jobs by status.
+
+        Returns
+        -------
+        dict of str to int
+            Mapping of status name to job count.
+        """
         with self._lock:
             counts: Dict[str, int] = {}
             for job in self._jobs.values():
@@ -343,6 +467,7 @@ class JobManager:
 
     @property
     def uptime_seconds(self) -> float:
+        """Seconds elapsed since this manager was created."""
         return float((datetime.now() - self._start_time).total_seconds())
 
 
@@ -366,6 +491,7 @@ if FASTAPI_AVAILABLE:
         return secrets.compare_digest(api_key, env_key)
 
     async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
+        """Validate the X-API-Key header and enforce its rate limit."""
         if not api_key:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -386,6 +512,7 @@ if FASTAPI_AVAILABLE:
     async def verify_api_key_or_bootstrap(
         api_key: str = Security(api_key_header),
     ) -> str:
+        """Accept a valid API key or an authorized bootstrap key."""
         if api_key_manager.validate_key(api_key):
             if not api_key_manager.check_rate_limit(api_key):
                 raise HTTPException(
@@ -460,6 +587,7 @@ if FASTAPI_AVAILABLE:
 
     @app.get("/", tags=["Root"])
     async def root():
+        """Return the API name, version, and documentation link."""
         return {
             "name": "Chiaroscuro Forge API",
             "version": _pkg_version,
@@ -469,6 +597,7 @@ if FASTAPI_AVAILABLE:
 
     @app.get("/health", tags=["Health"])
     async def health_check():
+        """Report basic service health with a timestamp."""
         return {
             "status": "healthy",
             "timestamp": datetime.now().isoformat(),
@@ -476,6 +605,7 @@ if FASTAPI_AVAILABLE:
 
     @app.get("/api/v1/health", tags=["Health"], response_model=HealthResponse)
     async def detailed_health(api_key: str = Depends(verify_api_key)):
+        """Summarize service health with job counts and uptime."""
         return HealthResponse(
             success=True,
             message="Health check",
@@ -511,6 +641,7 @@ if FASTAPI_AVAILABLE:
         tile_overlap: Optional[int] = Form(None),
         api_key: str = Depends(verify_api_key),
     ):
+        """Queue an uploaded image for background processing."""
         job_id = job_manager.create_job()
         try:
             max_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
@@ -594,6 +725,7 @@ if FASTAPI_AVAILABLE:
         job_id: str,
         api_key: str = Depends(verify_api_key),
     ):
+        """Fetch the current state of a job."""
         job = job_manager.get_job(job_id)
         if not job:
             raise HTTPException(status_code=404, detail="Job not found")
@@ -601,6 +733,7 @@ if FASTAPI_AVAILABLE:
 
     @app.get("/api/v1/jobs", tags=["Jobs"], response_model=APIResponse)
     async def list_jobs(api_key: str = Depends(verify_api_key)):
+        """List job counts grouped by status."""
         counts = job_manager.job_counts()
         return APIResponse(
             success=True,
@@ -610,6 +743,7 @@ if FASTAPI_AVAILABLE:
 
     @app.post("/api/v1/jobs/cleanup", tags=["Jobs"], response_model=APIResponse)
     async def cleanup_jobs(api_key: str = Depends(verify_api_key)):
+        """Delete expired jobs and report how many were removed."""
         removed = job_manager.cleanup_expired_jobs()
         return APIResponse(
             success=True,
@@ -622,6 +756,7 @@ if FASTAPI_AVAILABLE:
         rate_limit: int = Form(100),
         api_key: str = Depends(verify_api_key_or_bootstrap),
     ):
+        """Create a new API key with a display name and rate limit."""
         existing_keys = api_key_manager.list_keys()
         if existing_keys and not api_key_manager.validate_key(api_key):
             raise HTTPException(
@@ -642,6 +777,7 @@ if FASTAPI_AVAILABLE:
 
     @app.get("/api/v1/keys", tags=["Authentication"], response_model=APIResponse)
     async def list_api_keys(api_key: str = Depends(verify_api_key)):
+        """List registered API keys without exposing key values."""
         keys = api_key_manager.list_keys()
         return APIResponse(
             success=True,
@@ -714,21 +850,23 @@ def run_server(
 
     Parameters
     ----------
-    host :
-        Host to bind to.
-    port :
-        Port to listen on.
-    reload :
-        Enable auto-reload for development.
-    ssl_keyfile :
+    host : str, optional
+        Host to bind to (default: "0.0.0.0").
+    port : int, optional
+        Port to listen on (default: 8000).
+    reload : bool, optional
+        Enable auto-reload for development (default: False).
+    ssl_keyfile : str, optional
         Path to TLS private key file (PEM). Required for HTTPS.
-    ssl_certfile :
+    ssl_certfile : str, optional
         Path to TLS certificate file (PEM). Required for HTTPS.
 
     Raises
     ------
     ImportError
         If FastAPI is not installed.
+    ValueError
+        If only one of ssl_keyfile and ssl_certfile is given.
 
     Example
     -------
