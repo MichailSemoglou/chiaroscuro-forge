@@ -91,7 +91,7 @@ JobInfo: Any
 APIResponse: Any
 ProcessingParams: Any
 
-# Optional API module - only available if fastapi is installed
+# Optional API module - requires Python 3.10+ and FastAPI
 try:
     from chiaroscuro_forge.api import APIResponse as _APIResponse
     from chiaroscuro_forge.api import JobInfo as _JobInfo

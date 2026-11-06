@@ -35,6 +35,7 @@ response = requests.post(
 import logging
 import os
 import secrets
+import sys
 import tempfile
 import threading
 import time
@@ -55,8 +56,14 @@ from .processing import process_image as _process
 
 logger = logging.getLogger(__name__)
 
-FASTAPI_AVAILABLE = (
-    optional_import("fastapi", "REST API", "pip install 'fastapi[all]' uvicorn") is not None
+FASTAPI_AVAILABLE = sys.version_info >= (3, 10) and (
+    optional_import(
+        "fastapi",
+        "REST API",
+        "pip install 'fastapi[all]>=0.141.1' "
+        "'starlette>=1.3.1' 'python-multipart>=0.0.32' uvicorn",
+    )
+    is not None
 )
 
 if FASTAPI_AVAILABLE:
@@ -361,8 +368,7 @@ class JobManager:
         Returns
         -------
         JobInfo or None
-            Job details, or None if the job is unknown or FastAPI is not
-            installed.
+            Job details, or None if the job is unknown or the API is unavailable.
         """
         job = self._jobs.get(job_id)
         if not job or not FASTAPI_AVAILABLE:
@@ -833,10 +839,14 @@ if FASTAPI_AVAILABLE:
 
 else:
     app = None  # type: ignore[assignment]
-    logger.warning(
-        "FastAPI not installed. API functionality unavailable. "
-        "Install with: pip install 'fastapi[all]' uvicorn"
-    )
+    if sys.version_info < (3, 10):
+        logger.warning("REST API unavailable: Python 3.10 or newer is required.")
+    else:
+        logger.warning(
+            "FastAPI not installed. API functionality unavailable. "
+            "Install with: pip install 'fastapi[all]>=0.141.1' "
+            "'starlette>=1.3.1' 'python-multipart>=0.0.32' uvicorn"
+        )
 
 
 def run_server(
@@ -864,7 +874,7 @@ def run_server(
     Raises
     ------
     ImportError
-        If FastAPI is not installed.
+        If Python is older than 3.10 or FastAPI is not installed.
     ValueError
         If only one of ssl_keyfile and ssl_certfile is given.
 
@@ -875,9 +885,13 @@ def run_server(
     >>> # Production with TLS:
     >>> # run_server(port=443, ssl_keyfile="key.pem", ssl_certfile="cert.pem")
     """
+    if sys.version_info < (3, 10):
+        raise ImportError("The REST API requires Python 3.10 or newer.")
     if not FASTAPI_AVAILABLE:
         raise ImportError(
-            "FastAPI not installed. " "Install with: pip install 'fastapi[all]' uvicorn"
+            "FastAPI not installed. Install with: "
+            "pip install 'fastapi[all]>=0.141.1' "
+            "'starlette>=1.3.1' 'python-multipart>=0.0.32' uvicorn"
         )
     if (ssl_keyfile is None) != (ssl_certfile is None):
         raise ValueError(

@@ -35,6 +35,8 @@ The security policy covers:
 
 ## Deployment notes
 
+- Run the REST API on Python 3.10 or newer so its form-parsing dependencies include
+  the required security fixes. The API is unavailable on Python 3.9.
 - The REST API stores API keys and job state in memory. This is appropriate for
   a single-process deployment, such as one app instance or one container replica,
   where restarts are expected to reset those values.

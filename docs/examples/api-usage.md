@@ -4,10 +4,10 @@ This document provides examples of using the Chiaroscuro Forge REST API.
 
 ## Installation
 
-The REST API requires FastAPI and uvicorn:
+The REST API requires Python 3.10 or newer, FastAPI, and uvicorn:
 
 ```bash
-pip install "fastapi[all]" uvicorn
+pip install "fastapi[all]>=0.141.1" "starlette>=1.3.1" "python-multipart>=0.0.32" uvicorn
 ```
 
 ## Starting the Server

@@ -50,7 +50,7 @@ This project is designed for both practical image processing and research-orient
 ### Optional dependencies
 
 - GPU acceleration: `pyopencl`, `cupy`
-- REST API: `fastapi`, `uvicorn`, `httpx`, `python-multipart`
+- REST API (Python 3.10+): `fastapi`, `uvicorn`, `httpx`, `python-multipart`
 - Distributed processing: `redis`, `celery`
 - Property-based testing: `hypothesis`
 
@@ -184,7 +184,7 @@ if gpu_available():
 
 ### API server
 
-Start the local API server:
+The API server requires Python 3.10 or newer. Start the local server:
 
 ```bash
 uvicorn chiaroscuro_forge.api:app --reload

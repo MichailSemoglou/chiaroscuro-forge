@@ -30,7 +30,9 @@ try:
 except ImportError:
     FASTAPI_AVAILABLE = False
 
-pytestmark = pytest.mark.skipif(not FASTAPI_AVAILABLE, reason="FastAPI not installed")
+pytestmark = pytest.mark.skipif(
+    not FASTAPI_AVAILABLE, reason="FastAPI unavailable or Python is older than 3.10"
+)
 
 TEST_API_KEY = "test-key-42"
 
