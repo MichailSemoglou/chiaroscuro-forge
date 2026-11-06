@@ -9,9 +9,9 @@ Pillow>=10.4.0
 # - For Apple Silicon: Metal is built-in, no extra dependencies
 # - For OpenCL: pip install pyopencl
 
-# Optional REST API dependencies
+# Optional REST API dependencies (Python 3.10+)
 # Install for API functionality:
-# pip install "fastapi[all]" uvicorn
+# pip install "fastapi[all]>=0.141.1" "starlette>=1.3.1" "python-multipart>=0.0.32" uvicorn
 
 # Optional property-based testing dependencies
 # Install for advanced testing:
