@@ -57,7 +57,13 @@ from .processing import process_image as _process
 logger = logging.getLogger(__name__)
 
 FASTAPI_AVAILABLE = sys.version_info >= (3, 10) and (
-    optional_import("fastapi", "REST API", "pip install 'fastapi[all]' uvicorn") is not None
+    optional_import(
+        "fastapi",
+        "REST API",
+        "pip install 'fastapi[all]>=0.141.1' "
+        "'starlette>=1.3.1' 'python-multipart>=0.0.32' uvicorn",
+    )
+    is not None
 )
 
 if FASTAPI_AVAILABLE:
@@ -838,7 +844,8 @@ else:
     else:
         logger.warning(
             "FastAPI not installed. API functionality unavailable. "
-            "Install with: pip install 'fastapi[all]' uvicorn"
+            "Install with: pip install 'fastapi[all]>=0.141.1' "
+            "'starlette>=1.3.1' 'python-multipart>=0.0.32' uvicorn"
         )
 
 
@@ -882,7 +889,9 @@ def run_server(
         raise ImportError("The REST API requires Python 3.10 or newer.")
     if not FASTAPI_AVAILABLE:
         raise ImportError(
-            "FastAPI not installed. " "Install with: pip install 'fastapi[all]' uvicorn"
+            "FastAPI not installed. Install with: "
+            "pip install 'fastapi[all]>=0.141.1' "
+            "'starlette>=1.3.1' 'python-multipart>=0.0.32' uvicorn"
         )
     if (ssl_keyfile is None) != (ssl_certfile is None):
         raise ValueError(

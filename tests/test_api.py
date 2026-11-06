@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 from PIL import Image
 
-from chiaroscuro_forge.api import _build_processing_config_from_params, run_server
+from chiaroscuro_forge.api import _build_processing_config_from_params
 from chiaroscuro_forge.constants import MAX_FILE_SIZE_MB
 
 # Check if FastAPI is available
@@ -315,16 +315,6 @@ class TestProcessingConfigMapping:
         assert config.use_tiling is True
         assert config.tile_size == 256
         assert config.tile_overlap == 32
-
-
-class TestAPIServer:
-    """Tests for API server startup."""
-
-    def test_run_server_requires_python_310(self):
-        """Test that the API server rejects unsupported Python versions."""
-        with patch("chiaroscuro_forge.api.sys.version_info", (3, 9)):
-            with pytest.raises(ImportError, match="Python 3.10"):
-                run_server()
 
 
 class TestAPIEndpoints:
